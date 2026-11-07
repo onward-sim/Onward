@@ -192,7 +192,7 @@ class App:
         c = self.career
         c.s["prefs"].update({k: v for k, v in prefs.items() if k in career_mod.DEFAULT_PREFS})
         c.save()
-        self.gen = {"running": True, "progress": "Thinking...", "error": None}
+        self.gen = {"running": True, "progress": "Finding flights...", "error": None}
 
         def run():
             try:

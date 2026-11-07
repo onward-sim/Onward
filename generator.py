@@ -1,5 +1,6 @@
 """Turns 'where am I and what do I feel like' into three flights worth taking."""
 import math
+import threading
 import random
 import time
 import uuid
@@ -157,11 +158,8 @@ class Generator:
         self.world, self.weather, self.landmarks, self.log = world, weather, landmarks, log
         self.terrain = terrain  # function [(lat, lon)] -> [feet or None]
 
-    def read_terrain(self, dep, cards, progress=lambda m: None):
-        """Sample terrain around each destination and along each route in one go."""
-        if not self.terrain or not cards:
-            return
-        progress("Reading the terrain...")
+    @staticmethod
+    def _terrain_points(dep, cards):
         pts, owners = [], []
         for c in cards:
             ring, route = highlights.terrain_points(dep, c["a"], c["d"])
@@ -171,6 +169,14 @@ class Generator:
             for p in route:
                 pts.append(p)
                 owners.append((c, "route"))
+        return pts, owners
+
+    def read_terrain(self, dep, cards, progress=lambda m: None):
+        """Sample terrain around each destination and along each route in one go."""
+        if not self.terrain or not cards:
+            return
+        progress("Finding flights: checking the terrain...")
+        pts, owners = self._terrain_points(dep, cards)
         try:
             elev = self.terrain(pts)
         except Exception as e:
@@ -202,7 +208,7 @@ class Generator:
         countries = set(career.s["countries"])
         bush = prefs.get("bush")
 
-        progress("Looking at the map...")
+        progress("Finding flights: looking at the map...")
         pool = []
         for attempt in range(3):
             pool = []
@@ -246,7 +252,7 @@ class Generator:
         if not pool:
             return [], "No suitable airfields in that range. Try widening the distance or relaxing the filters."
 
-        progress("Checking the weather...")
+        progress("Finding flights: checking the weather...")
         metars = self.weather.around(dep["lat"], dep["lon"], dmax + 60)
         dep_wx = self.weather.nearest(metars, dep["lat"], dep["lon"])
         ifr_able = bool(prof.get("ifr")) and career.s["settings"].get("ifr_auto", True)
@@ -357,8 +363,28 @@ class Generator:
         need = set()
         for c in chosen:
             need |= self.landmarks.tiles_along(dep, c["a"], 5) | self.landmarks.tiles_near(c["a"]["lat"], c["a"]["lon"], 6)
-        progress("Scouting landmarks along the way...")
-        self.landmarks.wait_for(need, 20, progress)
+        # terrain tiles download in the background meanwhile (the first search in a new area needs dozens)
+        tstate = {"done": 0, "total": 0}
+        pre = None
+        try:
+            import terrain as _terrain
+            tpts = self._terrain_points(dep, chosen)[0]
+
+            def _tp(d, n):
+                tstate.update(done=d, total=n)
+            pre = threading.Thread(target=_terrain.prefetch, args=(tpts, _tp), daemon=True)
+            pre.start()
+        except Exception as e:  # no Pillow or similar: the planner falls back to the web services
+            self.log(f"Terrain tiles unavailable: {e}")
+        lm = self.landmarks
+        if lm.last_error and lm.failed and time.time() - max(lm.failed.values()) < 600:
+            progress("Finding flights: the landmark servers are busy, using the landmarks already saved...")
+        else:
+            lm.wait_for(need, 20, lambda m: progress("Finding flights: " + m[0].lower() + m[1:]))
+        while pre is not None and pre.is_alive():
+            if tstate["total"]:
+                progress(f"Finding flights: terrain for this area ({tstate['done']} of {tstate['total']} map tiles)...")
+            pre.join(0.5)
         for c in chosen:
             a = c["a"]
             c["route_pois"] = self.landmarks.along(dep, a, corridor_nm=5, fetch=False)

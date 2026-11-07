@@ -97,6 +97,10 @@ try:
     import terrain
     h = terrain.elevation_m(39.09, -120.04)
     check("terrain tiles (Lake Tahoe ~1897 m)", 1850 < h < 1950, h)
+    seen = []
+    pts = [(36.0 + k * 0.1, -118.0) for k in range(5)]
+    n = terrain.prefetch(pts, lambda d, t: seen.append((d, t)))
+    check("terrain tiles download in parallel with progress", not terrain.missing(pts) and (n == 0 or seen[-1] == (n, n)), (n, seen[-1:]))
 except Exception as e:  # offline is not a code failure
     print("skip terrain tiles:", e)
 

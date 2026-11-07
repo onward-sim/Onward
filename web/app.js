@@ -627,7 +627,7 @@ function prefsForm() {
     <label class="toggle"><input type="checkbox" id="pbush" ${p.bush ? "checked" : ""}> Bush mood: favor short and unpaved strips</label>
     <label class="toggle"><input type="checkbox" id="punch" ${p.uncharted ? "checked" : ""}> Include strips with unknown runway data or no sim code</label>
     <label class="toggle"><input type="checkbox" id="pnew" ${p.prefer_new ? "checked" : ""}> Prefer places I haven't been</label>
-    <div style="margin-top:14px"><button class="btn big" id="find" ${S.gen.running ? "disabled" : ""}>${S.gen.running ? esc(S.gen.progress || "Thinking…") : "Find adventures"}</button></div>
+    <div style="margin-top:14px"><button class="btn big" id="find" ${S.gen.running ? "disabled" : ""}>${S.gen.running ? esc(S.gen.progress || "Finding flights…") : "Find adventures"}</button>${S.gen.running ? `<p class="hint">Onward is working on it. The first search in a new area can take up to a minute while it downloads terrain and landmarks; after that it's quick.</p>` : ""}</div>
   </div>`;
 }
 
@@ -688,7 +688,7 @@ function filterSummary() {
   const lbl = { any: "mixed", easy: "relaxed", normal: "normal", hard: "tough" }[p.difficulty];
   const wx = { vfr: "VFR only", marginal: "up to MVFR", any: "any weather" }[p.weather];
   return `<div class="filters-sum"><span>${p.min_nm} to ${p.max_nm} nm · ${lbl} · ${p.surface === "any" ? "any surface" : p.surface === "paved" ? "paved" : "grass/dirt"} · ${wx}${p.bush ? " · bush" : ""}</span>
-    <span class="row"><button class="linkbtn" id="refind">${S.gen.running ? esc(S.gen.progress || "Thinking…") : "New search"}</button><button class="linkbtn" id="openfilters">Filters</button></span></div>`;
+    <span class="row"><button class="linkbtn" id="refind">${S.gen.running ? esc(S.gen.progress || "Finding flights…") : "New search"}</button><button class="linkbtn" id="openfilters">Filters</button></span></div>`;
 }
 
 const planOpen = {};

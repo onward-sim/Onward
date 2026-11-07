@@ -1,5 +1,10 @@
 # What's new
 
+## 0.26.4
+- Finding flights in a new area is about twice as fast: terrain downloads several map tiles at a time, while Onward looks for landmarks.
+- While it searches, Onward says what it's doing (with a count for the terrain) and that the first search in a new area takes longer.
+- When the landmark servers are busy, Onward no longer waits for them and uses the landmarks it already has.
+
 ## 0.26.3
 - The side view now shows scattered low cloud, like afternoon cumulus over the hills, which the forecast's height levels are too coarse to catch.
 - Flying at the height of scattered cloud is no longer reported as clear: the side view says you'll pass near or through some.
