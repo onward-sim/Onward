@@ -86,6 +86,13 @@ hz = briefing.hazards(col, 300, 30, 1500, 3)
 check("icing band found", bool(hz["ice"]) and hz["ice"][0][0] <= 5500, hz["ice"])
 check("gusts and storms", hz["low_turb"] is not None and hz["storm"] == "possible")
 check("cloud layers", bool(briefing.layers(col, 300)) and briefing.layers(col, 300)[0][2] >= 80)
+# scattered cumulus the pressure levels miss (thinner than the gap between levels): drawn from the surface forecast
+cu = [{"ft": 2600, "t": 14, "rh": 55, "ws": 5, "wd": 220, "cc": 5}, {"ft": 5000, "t": 9, "rh": 62, "ws": 8, "wd": 230, "cc": 10},
+      {"ft": 7300, "t": 3, "rh": 85, "ws": 12, "wd": 240, "cc": 22}, {"ft": 9900, "t": -3, "rh": 78, "ws": 18, "wd": 250, "cc": 20},
+      {"ft": 13900, "t": -12, "rh": 35, "ws": 25, "wd": 260, "cc": 40}]
+sct = briefing.low_layer(cu, 3000, 14, 4, 40, briefing.layers(cu, 3000))
+check("scattered cumulus shown", sct is not None and 6500 <= sct[0] <= 7500 and sct[1] >= 9500 and sct[2] == 40, sct)
+check("no cumulus on a clear day", briefing.low_layer(cu, 3000, 14, 4, 10, []) is None)
 try:
     import terrain
     h = terrain.elevation_m(39.09, -120.04)

@@ -468,6 +468,8 @@ table.spec td:last-child { text-align: right; font: 12.5px var(--mono); }
 .profile .hz-storm.possible { opacity: .08; }
 .profile .hz-st { fill: var(--bad) !important; font-weight: 500; }
 .profile .bad.turb { stroke: var(--warn); }
+.profile .bad.sct { stroke: var(--warn); }
+.profile .iss.sct { color: var(--warn); }
 .profile .bad.ice { stroke: var(--sky); }
 .profile .iss.turb { color: var(--warn); }
 .profile .iss.storm { color: var(--bad); }

@@ -823,7 +823,9 @@ class Landmarks:
                 raw = json.loads(http_get(url, timeout=30, data=urllib.parse.urlencode({"data": q}).encode()))
             except Exception as e:
                 msg = str(e)
-                self.log(f"Landmark lookup slow or failed on {url.split('/')[2]} ({msg[:80]})")
+                if time.time() - getattr(self, "fail_logged", 0) > 600:  # the public servers are often busy: say so every 10 minutes, not every try
+                    self.fail_logged = time.time()
+                    self.log(f"Landmark lookup slow or failed on {url.split('/')[2]} ({msg[:80]}). Onward keeps trying quietly.")
                 if "429" in msg:
                     time.sleep(10)
                 continue

@@ -1,8 +1,9 @@
 {
-  "version": "0.26.2",
+  "version": "0.26.3",
   "date": "2026-11-07",
   "notes": [
-    "Fixed: right after loading into the cockpit, Onward could show errors and briefly stop tracking until all the sim's values had arrived",
-    "The log file no longer shows your Windows user name, so it's safe to share in a bug report"
+    "The side view now shows scattered low cloud, like afternoon cumulus over the hills, which the forecast's height levels are too coarse to catch",
+    "Flying at the height of scattered cloud is no longer reported as clear: the side view says you'll pass near or through some",
+    "Busy OpenStreetMap servers are mentioned in the log every 10 minutes instead of every few minutes"
   ]
 }

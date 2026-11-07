@@ -73,6 +73,27 @@ def layers(col, ground_ft):
     return [[max(round(ground_ft), lo - 250), hi + 250, round(cc)] for lo, hi, cc in out]
 
 
+def low_layer(col, ground_ft, t, td, low, lay):
+    """Scattered or broken low cloud the pressure levels miss: cumulus is often thinner than the gap between
+    two levels, so the cloud cover at each level stays under 30% even when the sky is a quarter to half full.
+    Base from the temperature/dew point spread at the surface, top where the air above dries out.
+    Returns [base, top, cover] in feet, or None when there is no such cloud or a layer already covers it."""
+    if t is None or td is None or (low or 0) < 25:
+        return None
+    base = ground_ft + max(300, (t - td) * 400)
+    if any(lo - 500 <= base <= hi + 500 for lo, hi, cc in lay):
+        return None
+    top, ft = base + 1000, base
+    while col and ft <= col[-1]["ft"]:
+        a = _interp(col, ft)
+        if a is not None:
+            if a["rh"] < 70:
+                break
+            top = max(top, ft)
+        ft += 500
+    return [round(base / 100) * 100, round(min(top, base + 10000) / 100) * 100, round(low)]
+
+
 def _bands(flags, step):
     """[(ft, bool)] in 500 ft steps -> [[lo, hi], ...] where the flag is set."""
     out, lo = [], None
@@ -169,6 +190,9 @@ def route_weather(route, ete_min, when, cruise_alt, ifr, weather, dest, msa, log
             vis = g("visibility")
             col = _column(h, i, ground)
             lay = layers(col, ground)
+            extra = low_layer(col, ground, t, td, low, lay)
+            if extra:
+                lay = sorted(lay + [extra])
             solid = [l for l in lay if l[2] >= 50]
             if solid:  # the cloud cover at each height beats the temperature/dew point estimate
                 base = max(0, round((solid[0][0] - ground) / 100) * 100)

@@ -416,6 +416,14 @@ class Planner:
                                "text": (f"At {cruise:,} ft you'd be in cloud (base about {base:,} ft) for roughly {b_nm - a_nm:.0f} nm."
                                     if any(cruise < c["top"] + 500 for c in hit) else
                                     f"At {cruise:,} ft you'd be on top of a cloud layer (tops about {max(c['top'] for c in hit):,} ft) for roughly {b_nm - a_nm:.0f} nm, with no view of the ground.")})
+        # scattered cloud at your height: you'll pass near or through some, so don't call the route clear
+        if clouds and not any(i["kind"] == "cloud" for i in issues):
+            near = [c for c in clouds if 25 <= c["cover"] < 50 and c["base"] - 500 < cruise < c["top"] + 500]
+            if near:
+                a_nm, b_nm = min(c["from"] for c in near), max(c["to"] for c in near)
+                lo, hi = min(c["base"] for c in near), max(c["top"] for c in near)
+                issues.append({"kind": "sct", "from": round(a_nm, 1), "to": round(b_nm, 1), "base": lo,
+                               "text": f"Scattered cloud from about {lo:,} to {hi:,} ft between {a_nm:.0f} and {b_nm:.0f} nm: at {cruise:,} ft you'll pass near or through some."})
         hazards = self._hazards(route_wx, total, terrain)
         at_cruise = lambda h: h["lo"] - 300 <= cruise <= h["hi"] + 300
         ice = [h for h in hazards if h["kind"] == "ice" and at_cruise(h)]
