@@ -1,5 +1,9 @@
 # What's new
 
+## 0.26.2
+- Fixed: right after loading into the cockpit, Onward could show errors and briefly stop tracking until all the sim's values had arrived.
+- The log file no longer shows your Windows user name, so it's safe to share in a bug report.
+
 ## 0.26.1
 - Onward now lives at github.com/onward-sim/Onward, and updates come from there.
 - The demo starts at Half Moon Bay, California.

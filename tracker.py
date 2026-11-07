@@ -3,6 +3,7 @@ import math
 import random
 import threading
 import time
+import traceback
 from collections import deque
 
 import geo
@@ -19,6 +20,9 @@ FAST = {
     "hdg": ("PLANE HEADING DEGREES TRUE", "degrees"),
     "bank": ("PLANE BANK DEGREES", "degrees"), "pitch": ("PLANE PITCH DEGREES", "degrees"),
 }
+# Values every aircraft has. A sample is only used once all of them have arrived: right after loading into the
+# cockpit, MSFS sends the position before the rest, and half a sample broke the tracker and the page.
+CORE = ("lat", "lon", "alt", "agl", "on_ground", "ias", "gs", "vs", "hdg", "bank", "pitch")
 SLOW = {
     "rpm": ("GENERAL ENG RPM:1", "rpm"), "prop_rpm": ("PROP RPM:1", "rpm"),
     "cht": ("ENG CYLINDER HEAD TEMPERATURE:1", "fahrenheit"),
@@ -153,7 +157,7 @@ class SimConnectSource:
                 self.title = (tt or "").strip("\x00 ")
             out.update(self.slow_vals)
             out["title"] = self.title
-            if out.get("lat") is None or (out.get("lat") == 0 and out.get("lon") == 0):
+            if any(out.get(k) is None for k in CORE) or (out.get("lat") == 0 and out.get("lon") == 0):
                 if not getattr(self, "missing_logged", False) and time.time() - self.connected_at > 10:
                     self.missing_logged = True
                     self.log("Connected, but MSFS isn't sending aircraft data yet. Missing: "
@@ -293,6 +297,7 @@ class Tracker:
         self.weather = weather
         self.live = None
         self.f = None
+        self.err_logged = {}
         self.lock = threading.RLock()
         self.running = True
         self.photo_dirs, self.photo_dirs_t = [], 0
@@ -365,7 +370,12 @@ class Tracker:
                         if self.f and self.f["phase"] == "done":
                             self.finish()
                     except Exception as e:
-                        self.log(f"Tracker error: {e}")
+                        tb = traceback.extract_tb(e.__traceback__)
+                        where = f" (tracker.py line {tb[-1].lineno})" if tb else ""
+                        key, now2 = f"{e}{where}", time.time()
+                        if now2 - self.err_logged.get(key, 0) > 60:
+                            self.err_logged[key] = now2
+                            self.log(f"Tracker error: {e}{where}")
 
     def _update(self, s, dt):
         f = self.f
@@ -1139,7 +1149,7 @@ class Tracker:
             s = self.live
             out = {"connected": bool(s), "error": getattr(self.src, "error", ""), "demo": isinstance(self.src, DemoSource)}
             if s:
-                out["sample"] = {k: (round(v, 5) if k in ("lat", "lon") else (round(v, 1) if isinstance(v, float) else v))
+                out["sample"] = {k: (round(v, 5) if k in ("lat", "lon") and v is not None else (round(v, 1) if isinstance(v, float) else v))
                                  for k, v in s.items()}
             f = self.f
             if f:

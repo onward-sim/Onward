@@ -54,6 +54,31 @@ check("packaged app points to flightsim.to", st["available"] and st["url"].start
       and "flightsim.to" in st["msg"] and "github" not in st["msg"].lower(), st)
 st, _ = _frozen_check({"version": "", "url": ""})
 check("no stable version yet means no update", not st["available"], st)
+
+
+# right after loading into the cockpit MSFS sends the position before the rest: that half sample must wait
+import tracker  # noqa: E402
+
+
+class _Val:
+    def __init__(self, v):
+        self.value = v
+
+
+_src = tracker.SimConnectSource(log=lambda m: None)
+_src.try_connect = lambda: True
+_src.connected, _src.connected_at, _src.sm = True, time.time(), type("Sm", (), {"quit": 0})()
+_src.reqs = {k: _Val(None) for k in tracker.FAST}
+_src.reqs["lat"].value, _src.reqs["lon"].value = 37.5, -122.5
+_src.slow, _src.title_req = {k: _Val(None) for k in tracker.SLOW}, _Val(b"Cessna 172")
+half = _src.read()
+for _k in tracker.FAST:
+    if _src.reqs[_k].value is None:
+        _src.reqs[_k].value = 1.0
+check("half sample from MSFS waits", half is None and (_src.read() or {}).get("lat") == 37.5, half)
+sys.path.insert(0, ROOT)
+import server  # noqa: E402
+check("log hides the user folder", server.HOME not in server._private(os.path.join(server.HOME, "Onward", "data")))
 col = [{"ft": 300, "t": 8, "rh": 70, "ws": 10, "wd": 270, "cc": 0}, {"ft": 2500, "t": 4, "rh": 80, "ws": 18, "wd": 270, "cc": 0},
        {"ft": 5000, "t": 0, "rh": 95, "ws": 25, "wd": 280, "cc": 90}, {"ft": 10000, "t": -8, "rh": 92, "ws": 35, "wd": 290, "cc": 80},
        {"ft": 14000, "t": -16, "rh": 50, "ws": 40, "wd": 290, "cc": 0}]

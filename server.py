@@ -34,8 +34,19 @@ LOG = []
 LOG_FILE = os.path.join(data.DATA, "onward.log")
 
 
+HOME = os.path.expanduser("~")
+
+
+def _private(text):
+    """Logs get shared in bug reports: show the user folder as %USERPROFILE% instead of the Windows user name."""
+    text = str(text)
+    if len(HOME) > 3:
+        text = text.replace(HOME, "%USERPROFILE%").replace(HOME.replace("\\", "/"), "%USERPROFILE%")
+    return text
+
+
 def log(msg):
-    line = f"{time.strftime('%H:%M:%S')}  {msg}"
+    line = f"{time.strftime('%H:%M:%S')}  {_private(msg)}"
     print(line, flush=True)
     LOG.append(line)
     del LOG[:-200]
