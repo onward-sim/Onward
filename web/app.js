@@ -967,12 +967,20 @@ function updateLive() {
   const ph = ((S.job && S.job.photos) || []).filter((p) => !p.skip);
   if (changed("livephotos", ph.length)) $("#livephotos").innerHTML = ph.length ? `<h3>Photos this leg</h3>${photoStrip(ph, "this leg")}` : "";
   const real = f.events || [];
-  $("#dmg").innerHTML = real.length ? `<h3>Wear and tear this leg</h3>` + real.map((e) => `<div class="hint">${SYS[e.system]} −${e.amount}%: ${esc(e.reason)}</div>`).join("") : "";
+  $("#dmg").innerHTML = !real.length ? "" : f.accusim
+    ? `<h3>Noted this leg</h3><p class="hint">A2A AccuSim decides the actual damage.</p>` + real.map((e) => `<div class="hint">${SYS[e.system]}: ${esc(e.reason)}</div>`).join("")
+    : `<h3>Wear and tear this leg</h3>` + real.map((e) => `<div class="hint">${SYS[e.system]} −${e.amount}%: ${esc(e.reason)}</div>`).join("");
   document.querySelectorAll("#poilist li").forEach((li) => { const seen = f.seen.includes(li.dataset.id); li.classList.toggle("seen", seen); li.querySelector(".tick").textContent = seen ? "●" : "○"; });
 }
 
 function statusBanner() {
   const p = S.plane;
+  if (p.accusim && p.status !== "in_repair" && p.status !== "ok") {
+    const w = (p.accusim.worst || []).slice(0, 2).map((x) => `${esc(x.label.toLowerCase())} ${Math.round(x.pct)}%`).join(", ");
+    if (p.status === "grounded") return `<div class="banner bad">The ${esc(S.aircraft.name)} is grounded (${w}). Do the maintenance in the A2A tablet before flying.</div>`;
+    if (p.status === "damaged") return `<div class="banner bad">AccuSim reports damage (${w}). Until it's fixed, you'll only be offered ferry flights to a maintenance shop, where you can do the work in the A2A tablet.${S.shop_here ? " There's a shop right here." : ""}</div>`;
+    return `<div class="banner">AccuSim says some parts need attention (${w}).${S.shop_here ? " There's a shop here, so it's a good place to do the work in the A2A tablet." : ""}</div>`;
+  }
   if (p.status === "in_repair") return `<div class="banner bad">${p.repair.kind === "replacement" ? "Waiting for a replacement aircraft" : "The plane is in the shop"}: ready in <b>${fmtSec(p.repair.left_s)}</b>.</div>`;
   if (p.status === "grounded") return `<div class="banner bad">The ${esc(S.aircraft.name)} is grounded. Arrange a field repair in the Hangar before flying.</div>`;
   if (p.status === "damaged") return `<div class="banner bad">The plane is damaged. Until it's fixed, you'll only be offered ferry flights to a maintenance shop.${S.shop_here ? " There's a shop right here, see the Hangar." : ""}</div>`;
@@ -1421,17 +1429,32 @@ function renderModal() {
     <div class="facts"><span class="chip">${fmtMin(r.minutes)} flown</span><span class="chip">${r.distance_nm} nm</span>${r.landing_fpm != null ? `<span class="chip">Landing ${r.landing_fpm} fpm</span>` : ""}<span class="chip">${r.sights.length} sight${r.sights.length === 1 ? "" : "s"}</span></div>
     ${r.photos && r.photos.length ? `<h3>Photos</h3>${photoStrip(r.photos, `${r.from} → ${r.to}`)}` : ""}
     ${r.landing ? `<h3>Landing</h3>${scoreHtml(r.landing, r.gate)}` : ""}
-    ${r.damage.length ? `<h3>What the plane felt</h3>${r.damage.map((e) => `<div>${SYS[e.system]} −${e.amount}%: ${esc(e.reason)}</div>`).join("")}` : ""}
-    <h3>Aircraft condition</h3>${condBars(r.condition)}
+    ${r.damage.length ? `<h3>What the plane felt</h3>${r.damage.map((e) => r.accusim ? `<div>${SYS[e.system]}: ${esc(e.reason)}</div>` : `<div>${SYS[e.system]} −${e.amount}%: ${esc(e.reason)}</div>`).join("")}` : ""}
+    <h3>Aircraft condition${r.accusim ? " <span class=\"hint\">from A2A AccuSim</span>" : ""}</h3>${condBars(r.condition)}
+    ${r.accusim && (r.accusim_failed || []).length ? `<p><b>Failed:</b> ${r.accusim_failed.map(esc).join(", ")}</p>` : ""}
+    ${r.accusim && (r.accusim_worst || []).length ? `<p class="hint">Needs attention: ${r.accusim_worst.map((x) => `${esc(x.label)} ${Math.round(x.pct)}%`).join(", ")}</p>` : ""}
     ${r.met ? `<div class="banner good" style="color:var(--ink);margin-top:14px">${esc(r.met.story)}</div>` : ""}
     ${r.status === "in_repair" && r.outcome === "crash" ? `<p><b>The airframe is written off.</b> A replacement is on its way to ${esc(r.to_name)}. Check the Hangar for the timing.</p>` : ""}
-    <div class="row" style="margin-top:22px"><button class="btn lime" id="mclose">Onward</button>${r.shop_here && r.status !== "ok" && r.outcome !== "crash" ? `<button class="btn ghost" id="mshop">Book the shop here</button>` : ""}</div>`;
+    <div class="row" style="margin-top:22px"><button class="btn lime" id="mclose">Onward</button>${r.shop_here && r.status !== "ok" && r.outcome !== "crash" && !r.accusim ? `<button class="btn ghost" id="mshop">Book the shop here</button>` : ""}</div>`;
   m.classList.add("on");
   $("#mclose").onclick = () => { trailPts = []; if (trail) { trail.remove(); trail = null; } post("/api/dismiss"); };
   const sh = $("#mshop"); if (sh) sh.onclick = async () => { await post("/api/repair", { kind: "shop" }); post("/api/dismiss"); };
 }
 
 /* ---------------- hangar ---------------- */
+let accPartsOpen = false;
+function accusimCard(p) {
+  const a = p.accusim;
+  const part = (x) => { const cls = x.pct < 60 ? "low" : x.pct < 80 ? "mid" : ""; return `<div class="cond"><div class="lbl"><span>${esc(x.label)}</span><span>${Math.round(x.pct)}%</span></div><div class="bar"><i class="${cls}" style="width:${x.pct}%"></i></div></div>`; };
+  const bySys = Object.keys(SYS).map((k) => { const ps = a.parts.filter((x) => x.system === k).sort((x, y) => x.pct - y.pct); return ps.length ? `<h4>${SYS[k]}</h4>${ps.map(part).join("")}` : ""; }).join("");
+  const facts = [a.total_time != null ? `${a.total_time.toFixed(1)} h airframe` : "", a.engine_time != null ? `${a.engine_time.toFixed(1)} h engine` : "", a.oil_pct != null ? `oil ${Math.round(a.oil_pct)}%` : ""].filter(Boolean);
+  return `<p><b>Condition from A2A AccuSim.</b> <span class="hint">${facts.join(" · ")}${a.age_min >= 2 ? ` · last read ${a.age_min} min ago` : ""}</span></p>
+    <p class="hint">Onward reads the airplane's real condition and doesn't add wear or failures of its own. Do the maintenance in the A2A tablet (Maintenance page): Onward picks up the result automatically.</p>
+    ${a.failed.length ? `<p><b>Failed:</b> ${a.failed.map(esc).join(", ")}</p>` : ""}
+    ${a.worst.length ? `<h4>Needs attention</h4>${a.worst.map(part).join("")}` : `<p class="hint">Nothing below 90%.</p>`}
+    <details id="accparts" ${accPartsOpen ? "open" : ""}><summary class="hint">All ${a.parts.length} parts</summary>${bySys}</details>`;
+}
+
 function renderHangar() {
   if (!changed("hangar", [S.aircraft.id, S.plane, S.shop_here, S.aircraft_detected, S.job && S.job.id])) return;
   const p = S.plane, a = S.aircraft;
@@ -1441,18 +1464,18 @@ function renderHangar() {
     <div class="card"><h3 style="margin-top:0">Aircraft</h3>
       <select id="acsel" ${S.job ? "disabled" : ""}>${S.profiles.map((x) => `<option value="${x.id}" ${x.id === a.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select>
       <p class="hint">${S.sim_title ? `In the sim: ${esc(S.sim_title)}${S.aircraft_detected ? " (matched automatically)" : " (no match, pick one above)"}` : "Connect the sim and the aircraft is picked automatically."}</p>
-      <p><span class="status ${p.status}">${STATUS[p.status]}</span> <span class="hint">${p.hours.toFixed(1)} h on this airframe${p.write_offs ? ` · ${p.write_offs} written off` : ""}</span></p>
+      <p><span class="status ${p.status}">${STATUS[p.status]}</span> <span class="hint">${p.hours.toFixed(1)} h ${p.accusim ? "flown with Onward" : "on this airframe"}${p.write_offs ? ` · ${p.write_offs} written off` : ""}</span></p>
       ${condBars(p.cond)}
     </div>
     <div class="card"><h3 style="margin-top:0">Maintenance</h3>
-      ${rep ? `<p>${rep.kind === "replacement" ? "Replacement aircraft arriving" : rep.kind === "field" ? "Field repair under way" : "In the shop"}: ready in <b>${fmtSec(rep.left_s)}</b>.</p>` : `
+      ${p.accusim && !rep ? accusimCard(p) : rep ? `<p>${rep.kind === "replacement" ? "Replacement aircraft arriving" : rep.kind === "field" ? "Field repair under way" : "In the shop"}: ready in <b>${fmtSec(rep.left_s)}</b>.</p>` : `
       <p class="hint">Repairs take real time. A proper shop (larger airfields) fixes everything. A field repair, possible anywhere, patches the plane up to 70% so you can reach a shop.</p>
       <div class="row" style="margin-top:10px">
         <button class="btn" id="rshop" ${S.shop_here && !S.job ? "" : "disabled"}>Shop repair (${fmtMin(p.quotes.shop)})</button>
         <button class="btn ghost" id="rfield" ${p.quotes.field > 0 && !S.job ? "" : "disabled"}>Field repair (${fmtMin(p.quotes.field)})</button>
       </div>
       <p class="hint">${S.shop_here ? "There's a maintenance shop at this airfield." : "No shop at this airfield."}</p>`}
-      <h3>Recent wear</h3>${(p.damage_log || []).slice().reverse().map((e) => `<div class="hint">${SYS[e.system]} −${e.amount}%: ${esc(e.reason)}</div>`).join("") || `<p class="hint">Nothing yet. Keep it that way.</p>`}
+      <h3>${p.accusim ? "Recent flying" : "Recent wear"}</h3>${(p.damage_log || []).slice().reverse().map((e) => `<div class="hint">${SYS[e.system]}${e.noted ? "" : ` −${e.amount}%`}: ${esc(e.reason)}</div>`).join("") || `<p class="hint">Nothing yet. Keep it that way.</p>`}
     </div>
     <div class="card"><h3 style="margin-top:0">Limits used for this aircraft</h3>
       <table class="spec">
@@ -1468,6 +1491,7 @@ function renderHangar() {
   $("#acsel").onchange = (e) => post("/api/aircraft", { id: e.target.value });
   const rs = $("#rshop"); if (rs) rs.onclick = () => post("/api/repair", { kind: "shop" });
   const rf = $("#rfield"); if (rf) rf.onclick = () => post("/api/repair", { kind: "field" });
+  const ap = $("#accparts"); if (ap) ap.ontoggle = () => { accPartsOpen = ap.open; };
 }
 
 /* ---------------- settings ---------------- */

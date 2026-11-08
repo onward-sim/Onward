@@ -154,6 +154,12 @@ Each aircraft has four systems (engine, airframe, landing gear, propeller). They
 
 Repairs take real time (adjustable in Settings, or set them to 0).
 
+### A2A aircraft (AccuSim)
+
+Fly an A2A aircraft such as the A2A Comanche and Onward reads its real condition from AccuSim, the same values A2A's tablet shows: every cylinder, spark plug, magneto, filter, pump, tire, brake and control surface, plus failures like a blocked static port or a dead antenna. The four systems in the Hangar are worked out from those parts, and the Hangar lists the ones that need attention.
+
+With AccuSim in charge, Onward doesn't add wear or failures of its own. It still notes hard landings, exceedances and the rest in the journal. Do the maintenance in the A2A tablet: Onward picks up the result by itself. A damaged airplane still only gets ferry flights to a shop, which is a good place to do that work. Onward only reads AccuSim and never changes anything in it.
+
 ## MSFS points of interest
 
 Onward includes the community "Microsoft Flight Simulator Map" of MSFS's own points of interest: every World Update and City Update POI, the photogrammetry cities and the handcrafted airports. That's about 2,600 places. They show as amber dots on the map, are favored when routes are picked, and handcrafted airports get a bonus as destinations. Onward checks for an updated copy of the map once a week.

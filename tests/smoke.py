@@ -83,6 +83,21 @@ check("night from the sim clock", geo.solar_elevation(42.59, -5.65, _day) > 0 > 
       and _day.hour == 10, (_day, _dark))
 check("sim clock missing falls back to now", abs((tracker.sim_time({}) - __import__("datetime").datetime.now(__import__("datetime").timezone.utc)).total_seconds()) < 5)
 check("half sample from MSFS waits", half is None and (_src.read() or {}).get("lat") == 37.5, half)
+check("non-A2A aircraft reads no AccuSim", (_src.read() or {}).get("accusim", "x") is None)
+
+# A2A AccuSim: the airplane's real condition replaces Onward's own model
+import accusim  # noqa: E402
+_raw = tracker.demo_accusim()
+_sum = accusim.summarize(_raw, 6)
+check("AccuSim summary", _sum and set(_sum["systems"]) == {"engine", "airframe", "gear", "prop"}
+      and 75 < _sum["systems"]["engine"] < 82 and _sum["cylinders"] == 6, _sum and _sum["systems"])
+check("AccuSim worst part first", accusim.worst(_sum)[0]["label"] == "Oil filter", accusim.worst(_sum)[:2])
+check("AccuSim off means no summary", accusim.summarize(dict(_raw, AccusimPublic=0)) is None)
+_four = {k: v for k, v in _raw.items() if not any(f"Cyl{i}" in k or f"Cyl[{i}]" in k for i in (5, 6))}
+check("AccuSim counts cylinders", accusim.summarize(_four)["cylinders"] == 4)
+check("missing plug set isn't a dead engine", accusim.summarize(dict(_raw, **{f"C_Eng1_Cyl{i}_SparkPlugR": 0.0 for i in range(1, 7)}), 6)["systems"]["engine"] > 75)
+_fail = accusim.summarize(dict(_raw, F_AntennaCom1=1.0), 6)
+check("AccuSim failures listed", _fail["failed"] == ["COM 1 antenna"], _fail["failed"])
 sys.path.insert(0, ROOT)
 import server  # noqa: E402
 check("log hides the user folder", server.HOME not in server._private(os.path.join(server.HOME, "Onward", "data")))

@@ -90,6 +90,34 @@ class Career:
             return "worn"
         return "ok"
 
+    def accusim(self, pid=None):
+        """The last AccuSim reading for this airplane, if its condition comes from A2A AccuSim."""
+        return self.plane(pid).get("accusim")
+
+    def sync_accusim(self, summary, pid=None):
+        """Take the airplane's condition from AccuSim. Saves only when something visible changed, or once a minute."""
+        p = self.plane(pid)
+        with self.lock:
+            prev = p.get("accusim") or {}
+            cond = dict(p["cond"])
+            for k, v in summary["systems"].items():
+                if k in cond:
+                    cond[k] = v
+            moved = any(abs(cond[k] - p["cond"][k]) >= 0.5 for k in cond) or summary["failed"] != prev.get("failed")
+            p["cond"] = cond
+            p["accusim"] = dict(summary, at=time.time())
+            if moved or time.time() - prev.get("saved", 0) > 60:
+                p["accusim"]["saved"] = time.time()
+                self.save()
+
+    def clear_accusim(self, pid=None):
+        """The same type is flying without AccuSim (a different version of it): back to Onward's own model,
+        starting from the last condition AccuSim reported."""
+        p = self.plane(pid)
+        with self.lock:
+            if p.pop("accusim", None) is not None:
+                self.save()
+
     def apply_damage(self, events, pid=None):
         """events: list of {system, amount, reason}"""
         p = self.plane(pid)
@@ -118,6 +146,8 @@ class Career:
 
     def start_repair(self, kind, pid=None):
         p = self.plane(pid)
+        if p.get("accusim") and kind != "replacement":
+            return "This airplane's condition comes from A2A AccuSim. Do the maintenance in the A2A tablet, and Onward picks it up."
         here = self.world.airports.get(self.s["location"])
         if kind == "shop" and not self.is_shop(here):
             return "There's no maintenance shop here."

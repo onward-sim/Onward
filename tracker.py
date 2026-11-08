@@ -1,11 +1,14 @@
 """Reads the sim, follows the flight, keeps score on how the airplane was treated."""
 import math
+import os
 import random
 import threading
 import time
 import traceback
 from collections import deque
 
+import accusim
+import career as career_mod
 import geo
 import photos
 import story
@@ -85,6 +88,9 @@ class SimConnectSource:
         self.error = ""
         self.connected_at = 0
         self.last_data = 0
+        self.accu = {}        # AccuSim variables, only asked for while an A2A aircraft is loaded
+        self.accu_at = 0
+        self.accu_vals = None
 
     def try_connect(self):
         if self.connected or time.time() - self.last_try < 5:
@@ -120,6 +126,7 @@ class SimConnectSource:
             self.reqs = {k: Request((v[0].encode(), v[1].encode()), self.sm, _time=0) for k, v in FAST.items()}
             self.slow = {k: Request((v[0].encode(), v[1].encode()), self.sm, _time=0) for k, v in SLOW.items()}
             self.title_req = Request((b"TITLE", b"String"), self.sm, _time=0)
+            self.accu, self.accu_vals, self.accu_at = {}, None, 0
             self.connected = True
             self.connected_at = time.time()
             self.last_data = 0
@@ -171,6 +178,7 @@ class SimConnectSource:
                 self.title = (tt or "").strip("\x00 ")
             out.update(self.slow_vals)
             out["title"] = self.title
+            out["accusim"] = self._read_accusim()
             if any(out.get(k) is None for k in CORE) or (out.get("lat") == 0 and out.get("lon") == 0):
                 if not getattr(self, "missing_logged", False) and time.time() - self.connected_at > 10:
                     self.missing_logged = True
@@ -186,6 +194,21 @@ class SimConnectSource:
         except Exception as e:
             self._drop(f"Lost the sim connection ({e}).")
             return None
+
+    def _read_accusim(self):
+        """AccuSim condition values every few seconds while an A2A aircraft is loaded (they change slowly)."""
+        if not accusim.is_a2a(self.title):
+            self.accu_vals = None
+            return None
+        if time.time() - self.accu_at < 5:
+            return self.accu_vals
+        self.accu_at = time.time()
+        if not self.accu:
+            from SimConnect import Request
+            self.accu = {n: Request((f"L:{n}".encode(), b"number"), self.sm, _time=0) for n in accusim.var_names()}
+        vals = {n: r.value for n, r in self.accu.items()}
+        self.accu_vals = vals if accusim.is_active(vals) else None
+        return self.accu_vals
 
     def load_plan(self, path_no_ext):
         if not self.connected:
@@ -206,6 +229,21 @@ class SimConnectSource:
         except Exception as e:
             self.log(f"Could not send {name}: {e}")
             return False
+
+
+def demo_accusim():
+    """AccuSim values like a real Comanche with about 20 hours on it (from a read of the actual aircraft)."""
+    v = {n: 1.0 for n in accusim.var_names() if n.startswith("C_")}
+    v.update({n: 0.0 for n in accusim.var_names() if n.startswith("F_")})
+    v.update({"AccusimPublic": 1.0, "TotalTime": 21.76, "Eng1_Time": 19.24, "Eng1_OilTankQuantityPct": 59.0,
+              "C_Eng1_Main": 0.899, "C_Eng1_MagL": 0.860, "C_Eng1_MagR": 0.896, "C_Eng1_Oilsystem": 0.863,
+              "C_Eng1_OilFilter": 0.699, "C_Eng1_Starter": 0.945, "C_Eng1_Prop": 0.902, "C_Eng1_Generator": 0.934,
+              "C_Eng1_VacuumPump": 0.907, "C_Eng1_AirFilter": 0.877, "C_Battery1": 0.935, "C_BrakesLeft": 0.981,
+              "C_BrakesRight": 0.968, "C_WingflapLeft": 0.729, "C_WingflapRight": 0.729, "C_Eng1_Cyl[1]": 0.888,
+              "C_Eng1_Cyl[2]": 0.925, "C_Eng1_Cyl[3]": 0.976, "C_Eng1_Cyl[4]": 0.968, "C_Eng1_Cyl[5]": 0.997,
+              "C_Eng1_Cyl[6]": 0.904, "C_Eng1_Cyl3_SparkPlugL": 0.926, "C_Eng1_Cyl5_SparkPlugL": 0.888,
+              "C_Eng1_Carb": 0.0, "C_GearCenter": 1.0})
+    return v
 
 
 class DemoSource:
@@ -253,6 +291,10 @@ class DemoSource:
         p = self.plan
         s = self.s
         s["title"] = "Demo " + self.career.profile()["name"]
+        if os.environ.get("ONWARD_DEMO_ACCUSIM"):
+            # pretend to be an A2A aircraft, to try the AccuSim screens without the sim
+            s["title"] = "Demo A2A " + self.career.profile()["name"]
+            s["accusim"] = demo_accusim()
         if not p:
             return dict(s)
         el = time.time() - p["t0"]
@@ -315,6 +357,7 @@ class Tracker:
         self.lock = threading.RLock()
         self.running = True
         self.photo_dirs, self.photo_dirs_t = [], 0
+        self.accu_last = None
         if career.s.get("job"):
             self.begin(career.s["job"], resume=True)
         threading.Thread(target=self._loop, daemon=True).start()
@@ -329,7 +372,8 @@ class Tracker:
                       "shock_t": 0, "ground_slow_s": 0.0, "td_t": None, "excursion": False, "crash": False,
                       "dep_warned": False, "maxalt": 0, "exceed": {}, "go_arounds": 0, "ga_armed": None,
                       "wx_check_t": time.time(), "dest_wx": job.get("weather"), "wp_idx": 1, "prealert": [],
-                      "arrival_shown": False, "track": [], "poslog": deque(maxlen=2000), "poslog_t": 0}
+                      "arrival_shown": False, "track": [], "poslog": deque(maxlen=2000), "poslog_t": 0,
+                      "accusim": False}
             if not resume or "photo_since" not in job:
                 job["photo_since"] = time.time() - 30
                 job["photos"] = []
@@ -378,6 +422,17 @@ class Tracker:
                 s = None
             with self.lock:
                 self.live = s
+                if s and not s.get("accusim") and not accusim.is_a2a(s.get("title")) and self.career.accusim():
+                    title = (s.get("title") or "").lower()
+                    if any(m in title for m in self.career.profile().get("match", [])):
+                        self.career.clear_accusim()
+                        self.log(f"This {self.career.profile()['name']} isn't an A2A AccuSim aircraft: Onward keeps its condition again.")
+                if s and s.get("accusim") is not self.accu_last:
+                    self.accu_last = s.get("accusim")
+                    try:
+                        self._sync_accusim(s)
+                    except Exception as e:
+                        self.log(f"AccuSim read failed: {e}")
                 if s and self.f:
                     try:
                         self._update(s, dt)
@@ -391,9 +446,24 @@ class Tracker:
                             self.err_logged[key] = now2
                             self.log(f"Tracker error: {e}{where}")
 
+    def _sync_accusim(self, s):
+        """An A2A aircraft is loaded: its AccuSim condition becomes the condition of the matching Onward airplane."""
+        raw = s.get("accusim")
+        prof = self.career.profile()
+        title = (s.get("title") or "").lower()
+        if not raw or not any(m in title for m in prof.get("match", [])):
+            return
+        summary = accusim.summarize(raw, prof.get("cylinders"))
+        if summary:
+            if not self.career.accusim():
+                self.log(f"A2A AccuSim found: the {prof['name']}'s condition now comes from AccuSim.")
+            self.career.sync_accusim(summary)
+
     def _update(self, s, dt):
         f = self.f
         job = f["job"]
+        if s.get("accusim"):
+            f["accusim"] = True
         prof = self.career.profile()
         on_ground = bool(s.get("on_ground"))
         lat, lon = s["lat"], s["lon"]
@@ -934,8 +1004,8 @@ class Tracker:
         st = self.career.s["settings"]
         f = self.f
         f["planned"] = []
-        if not st.get("failures"):
-            return
+        if not st.get("failures") or f.get("accusim"):
+            return  # AccuSim aircraft break on their own; Onward doesn't add failures on top
         cond = self.career.plane()["cond"]
         ete_s = job["ete_min"] * 60
         for sysname, c in cond.items():
@@ -1032,15 +1102,24 @@ class Tracker:
             final = near or w.airports.get(job["dep"]["ident"])
 
             hours = f["air_s"] / 3600
-            hit("engine", round(0.6 * hours, 2), "Normal engine wear")
-            for sysname in ("airframe", "gear", "prop"):
-                hit(sysname, round(0.2 * hours, 2), "Normal wear")
+            accu = f.get("accusim")
+            if not accu:
+                hit("engine", round(0.6 * hours, 2), "Normal engine wear")
+                for sysname in ("airframe", "gear", "prop"):
+                    hit(sysname, round(0.2 * hours, 2), "Normal wear")
             plane = c.plane()
             plane["hours"] = round(plane["hours"] + hours, 2)
             if crash:
                 c.write_off()
-            else:
+            elif not accu:
                 c.apply_damage(events)
+            else:
+                # AccuSim keeps the real score: Onward only notes what happened, the condition comes from A2A
+                if s.get("accusim"):
+                    self._sync_accusim(s)
+                with c.lock:
+                    plane["damage_log"] = (plane["damage_log"] + [dict(e, at=career_mod.now_iso(), noted=True)
+                                                                for e in events if e["amount"] >= 0.5])[-60:]
             self._clear_failures()
 
             # who you met, what you saw
@@ -1122,7 +1201,7 @@ class Tracker:
                 "lat": final["lat"], "lon": final["lon"], "night": job.get("night", False),
                 "rules": job.get("rules", "VFR"), "go_arounds": f["go_arounds"], "landing": card,
                 "gate": f.get("gate"), "photos": [{k: v for k, v in p.items() if k != "src"} for p in job.get("photos", []) if not p.get("skip")],
-                "from_ident": job["dep"]["ident"], "track": _thin([[job["dep"]["lat"], job["dep"]["lon"]]] + f["track"] + [[final["lat"], final["lon"]]]),
+                "accusim": bool(accu), "from_ident": job["dep"]["ident"], "track": _thin([[job["dep"]["lat"], job["dep"]["lon"]]] + f["track"] + [[final["lat"], final["lon"]]]),
             }
             c.add_entry(entry)
             c.move_to(final["ident"])
@@ -1135,6 +1214,8 @@ class Tracker:
             if outcome in ("arrived", "diverted") and not c.s.get("pending_friend") and random.random() < 0.2:
                 met = self._meet_someone(final)
             result = dict(entry, condition=dict(c.plane()["cond"]), status=c.status(), friend_done=friend_done,
+                          accusim_worst=accusim.worst(c.accusim()) if accu else None,
+                          accusim_failed=(c.accusim() or {}).get("failed", []) if accu else None,
                           met=met, new_country=new_country, shop_here=c.is_shop(final))
             c.s["last_result"] = result
             c.s["job"] = None
@@ -1169,7 +1250,7 @@ class Tracker:
             out = {"connected": bool(s), "error": getattr(self.src, "error", ""), "demo": isinstance(self.src, DemoSource)}
             if s:
                 out["sample"] = {k: (round(v, 5) if k in ("lat", "lon") and v is not None else (round(v, 1) if isinstance(v, float) else v))
-                                 for k, v in s.items()}
+                                 for k, v in s.items() if k != "accusim"}  # AccuSim's ~80 raw values go to the Hangar summary, not every page refresh
             f = self.f
             if f:
                 job = f["job"]
@@ -1177,7 +1258,7 @@ class Tracker:
                     "phase": f["phase"], "msgs": f["msgs"][-12:], "events": f["events"], "landings": f["landings"],
                     "seen": f["seen"], "air_min": round(f["air_s"] / 60, 1), "nm": round(f["nm"], 1),
                     "exceed": [k for k, t in f["exceed"].items() if time.time() - t < 2],
-                    "active_failures": [p["label"] for p in f["active"]],
+                    "active_failures": [p["label"] for p in f["active"]], "accusim": f.get("accusim", False),
                 }
                 if s:
                     d = job["dest"]

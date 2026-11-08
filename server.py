@@ -16,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import accusim  # noqa: E402
 import career as career_mod  # noqa: E402
 import data  # noqa: E402
 import geo  # noqa: E402
@@ -177,13 +178,23 @@ class App:
             "plane": {"cond": plane["cond"], "hours": plane["hours"], "status": status,
                       "repair": dict(repair, left_s=max(0, round(repair["until"] - time.time()))) if repair else None,
                       "quotes": {"shop": c.repair_quote("shop"), "field": c.repair_quote("field")},
-                      "damage_log": plane["damage_log"][-12:], "write_offs": plane["write_offs"]},
+                      "damage_log": plane["damage_log"][-12:], "write_offs": plane["write_offs"],
+                      "accusim": self.accusim_view(plane)},
             "offers": snap["offers"], "job": snap["job"], "prefs": snap["prefs"], "settings": dict(snap["settings"], update_token="••••" if snap["settings"].get("update_token") else ""),
             "pending_friend": snap.get("pending_friend"), "last_result": snap.get("last_result"), "trip": snap.get("trip"),
             "version": version.VERSION, "update": dict(self.updater.status, backups=self.updater.backups()),
             "needs_setup": not c.s.get("setup_done", True), "data_dir": data.DATA,
             "stats": c.stats(), "live": live, "gen": self.gen, "log": LOG[-6:],
         }
+
+    @staticmethod
+    def accusim_view(plane):
+        a = plane.get("accusim")
+        if not a:
+            return None
+        return {"parts": a["parts"], "failed": a["failed"], "worst": accusim.worst(a), "total_time": a.get("total_time"),
+                "engine_time": a.get("engine_time"), "oil_pct": a.get("oil_pct"), "cylinders": a.get("cylinders"),
+                "age_min": int((time.time() - a.get("at", 0)) // 60)}
 
     # ---------- actions ----------
     def generate(self, prefs):

@@ -562,3 +562,7 @@ ul.credits li { margin: 2px 0; }
 @media (min-width: 2200px) {
   .side { width: 620px; }
 }
+
+/* AccuSim parts in the hangar */
+.card h4 { font: 600 11px var(--sans); text-transform: uppercase; letter-spacing: .08em; color: var(--mute); margin: 16px 0 6px; }
+.card details summary { cursor: pointer; margin-top: 12px; }

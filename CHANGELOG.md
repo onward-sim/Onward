@@ -1,5 +1,9 @@
 # What's new
 
+## Unreleased
+- A2A aircraft: Onward reads the real condition from AccuSim (cylinders, spark plugs, magnetos, filters, tires, brakes, flaps and more) instead of keeping its own, and the Hangar shows the parts that need attention.
+- With AccuSim, Onward no longer adds its own wear or failures on top of A2A's. Maintenance is done in the A2A tablet, and Onward picks it up.
+
 ## 0.26.6
 - Fixed: a daytime landing could be written up as a night landing when the flight had been picked hours earlier. Onward now checks the sun at the moment you land, using the sim's own clock.
 - A well-flared landing that touches down near the stall no longer loses points or gets a "close to the stall" note: the approach speed is for over the fence, not for touchdown.
