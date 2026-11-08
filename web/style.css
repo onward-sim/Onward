@@ -130,6 +130,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--lime); outl
 .ox .f .cat.LIFR { color: #8a3aa8; }
 .ox .f .stars { font-size: 11px; margin-left: 4px; }
 .ox .ifr { margin-right: 6px; }
+.ifr.offmap { background: var(--warn); color: var(--paper); cursor: help; }
 .offer.open { background: var(--card); border: 1px solid var(--line2); border-radius: var(--radius); padding: 18px 20px; margin: 10px 0; }
 .offer.open .ox .t { font-size: 32px; }
 .offer.open .ox .t em { color: var(--moss); }

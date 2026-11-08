@@ -1,5 +1,10 @@
 # What's new
 
+## 0.27.3
+- Strips the sim may not have are marked OFF THE MAP in the list of suggested flights (hover the tag for what it means).
+- Fixed: strips with no elevation in the airfield database were treated as sea level, so they showed "elev 0 ft" and the hills around them were called a mountain approach. Onward now takes their height from the terrain.
+- "Runway: unknown" now reads "Runway details unknown", with an explanation when you hover it.
+
 ## 0.27.2
 - The option for strips with no sim code or unknown runway is now called "Off the map", with a line explaining that the sim may show a field, a farm or nothing at all there.
 

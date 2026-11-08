@@ -242,6 +242,7 @@ class World:
                 self.airports[ident] = {
                     "ident": ident, "code": code, "type": r["type"], "name": r["name"],
                     "lat": lat, "lon": lon, "elev": _f(r["elevation_ft"], 0) or 0,
+                    "elev_missing": not (r["elevation_ft"] or "").strip(),  # filled in from the terrain when needed
                     "country": r["iso_country"], "town": r["municipality"],
                     "scheduled": r["scheduled_service"] == "yes", "runways": [],
                 }

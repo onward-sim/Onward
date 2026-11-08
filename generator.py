@@ -177,6 +177,12 @@ class Generator:
             return
         progress("Finding flights: checking the terrain...")
         pts, owners = self._terrain_points(dep, cards)
+        # strips with no elevation in the database read as sea level, which made the hills around them look like
+        # mountains: take the field's height from the terrain instead
+        for c in cards:
+            if c["a"].get("elev_missing"):
+                pts.append((c["a"]["lat"], c["a"]["lon"]))
+                owners.append((c, "field"))
         try:
             elev = self.terrain(pts)
         except Exception as e:
@@ -187,6 +193,10 @@ class Generator:
         for c in cards:
             c["terrain"] = {"ring": [], "route": []}
         for (c, part), e in zip(owners, elev):
+            if part == "field":
+                if e is not None:
+                    c["a"]["elev"], c["a"]["elev_missing"] = round(e), False
+                continue
             c["terrain"][part].append(e)
 
     def generate(self, career, prefs, now_utc=None, progress=lambda m: None):

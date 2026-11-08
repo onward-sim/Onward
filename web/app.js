@@ -641,7 +641,7 @@ function wxChips(w, label) {
 }
 function runwayChips(o) {
   const r = o.runway;
-  if (!r || !r.length) return `<span class="chip warn">Runway: unknown</span>`;
+  if (!r || !r.length) return `<span class="chip warn" title="The airfield database has no length or surface for this runway. It may still exist in the sim.">Runway details unknown</span>`;
   const xw = r.crosswind != null ? `<span class="chip ${r.crosswind >= 12 ? "warn" : ""}">X-wind ${r.crosswind} kt${r.headwind < 0 ? `, tail ${-r.headwind}` : ""}</span>` : "";
   return `<span class="chip">RWY ${esc(r.end || r.id)} · ${r.length.toLocaleString()} ft · ${r.surface}</span>${o.night ? `<span class="chip ${r.lighted ? "" : "bad"}">${r.lighted ? "Lighted" : "Unlit!"}</span>` : ""}${xw}`;
 }
@@ -676,7 +676,7 @@ function offerCard(o, i) {
   const first = (o.highlights || [])[0];
   const head = `<div class="offer-head ox" data-open="${o.id}">
       <span class="n">${n}</span>
-      <span class="t">${o.rules === "IFR" ? `<span class="ifr">IFR</span>` : ""}${o.trip_leg ? `<span class="ifr">TRIP ${o.trip_leg.n}/${o.trip_leg.of}</span>` : o.kind === "anywhere" ? `<span class="ifr">YOUR PICK</span>` : ""}${esc(o.title)}</span>
+      <span class="t">${d.uncharted || !r.length ? `<span class="ifr offmap" title="${d.uncharted ? "No code the sim knows" : "No runway data"}: the sim may show a field, a farm or nothing at all. Overfly and inspect before landing.">OFF THE MAP</span>` : ""}${o.rules === "IFR" ? `<span class="ifr">IFR</span>` : ""}${o.trip_leg ? `<span class="ifr">TRIP ${o.trip_leg.n}/${o.trip_leg.of}</span>` : o.kind === "anywhere" ? `<span class="ifr">YOUR PICK</span>` : ""}${esc(o.title)}</span>
       <span class="d">${o.distance_nm} nm · ${surf}${w ? ` · ${w.cat}` : ""}</span>
       ${open ? "" : first ? `<span class="s">${esc(first.text)}</span>` : ""}
       ${open ? "" : `<span class="f">${offerFacts(o)}</span>`}
