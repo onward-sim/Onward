@@ -96,6 +96,9 @@ check("AccuSim off means no summary", accusim.summarize(dict(_raw, AccusimPublic
 _four = {k: v for k, v in _raw.items() if not any(f"Cyl{i}" in k or f"Cyl[{i}]" in k for i in (5, 6))}
 check("AccuSim counts cylinders", accusim.summarize(_four)["cylinders"] == 4)
 check("missing plug set isn't a dead engine", accusim.summarize(dict(_raw, **{f"C_Eng1_Cyl{i}_SparkPlugR": 0.0 for i in range(1, 7)}), 6)["systems"]["engine"] > 75)
+_foul = accusim.summarize(dict(_raw, **{"C_Eng1_Cyl3_SparkPlugL": 0.0, "C_Eng1_Cyl1_SparkPlugL": 0.13}), 6)
+check("fouled plugs don't ground the engine", _foul["systems"]["engine"] > 75 and _foul["plugs"]["fouled"] == 2
+      and all(p["system"] != "plugs" for p in accusim.worst(_foul)), (_foul["systems"], _foul["plugs"]))
 _fail = accusim.summarize(dict(_raw, F_AntennaCom1=1.0), 6)
 check("AccuSim failures listed", _fail["failed"] == ["COM 1 antenna"], _fail["failed"])
 sys.path.insert(0, ROOT)

@@ -193,7 +193,7 @@ class App:
         if not a:
             return None
         return {"parts": a["parts"], "failed": a["failed"], "worst": accusim.worst(a), "total_time": a.get("total_time"),
-                "engine_time": a.get("engine_time"), "oil_pct": a.get("oil_pct"), "cylinders": a.get("cylinders"),
+                "engine_time": a.get("engine_time"), "oil_pct": a.get("oil_pct"), "cylinders": a.get("cylinders"), "plugs": a.get("plugs"),
                 "age_min": int((time.time() - a.get("at", 0)) // 60)}
 
     # ---------- actions ----------

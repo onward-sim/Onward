@@ -93,6 +93,10 @@ def summarize(raw, cylinders=None):
         if names and all((raw.get(n) or 0) == 0 for n in names):
             cyl_parts = [p for p in cyl_parts if p[0] not in names]
 
+    # Spark plugs foul and clear (rich idling on the ground fouls them, a run-up or leaning clears them), so they
+    # don't count toward the engine's condition: a fouled plug isn't a worn engine. They're reported on their own.
+    plugs = [p for p in cyl_parts if "SparkPlug" in p[0]]
+    cyl_parts = [p for p in cyl_parts if "SparkPlug" not in p[0]]
     groups = {"engine": ENGINE_PARTS + cyl_parts, "airframe": AIRFRAME_PARTS, "gear": GEAR_PARTS, "prop": PROP_PARTS}
     parts, systems = [], {}
     for system, group in groups.items():
@@ -110,13 +114,22 @@ def summarize(raw, cylinders=None):
             vals.append(pct)
         if vals:
             systems[system] = round(WORST_WEIGHT * min(vals) + (1 - WORST_WEIGHT) * sum(vals) / len(vals), 1)
+    plug_vals = []
+    for name, label in plugs:
+        v = val(name)
+        if v is not None:
+            pct = round(v * 100, 1)
+            parts.append({"id": name, "label": label, "system": "plugs", "pct": pct})
+            plug_vals.append(pct)
+    plug_info = {"count": len(plug_vals), "fouled": sum(1 for v in plug_vals if v < 50),
+                 "lowest": min(plug_vals)} if plug_vals else None
     failed = [label for name, label in FAILURES if (raw.get(name) or 0) >= 0.5]
 
     def num(key, digits=1):
         v = raw.get(INFO[key])
         return None if v is None else round(float(v), digits)
 
-    return {"systems": systems, "parts": parts, "failed": failed, "cylinders": cyl,
+    return {"systems": systems, "parts": parts, "failed": failed, "cylinders": cyl, "plugs": plug_info,
             "total_time": num("total_time", 2), "engine_time": num("engine_time", 2), "oil_pct": num("oil_pct", 0)}
 
 
@@ -124,4 +137,4 @@ def worst(summary, n=5, below=90):
     """The parts most in need of attention, worst first."""
     if not summary:
         return []
-    return sorted([p for p in summary["parts"] if p["pct"] < below], key=lambda p: p["pct"])[:n]
+    return sorted([p for p in summary["parts"] if p["pct"] < below and p["system"] != "plugs"], key=lambda p: p["pct"])[:n]

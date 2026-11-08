@@ -1446,11 +1446,14 @@ let accPartsOpen = false;
 function accusimCard(p) {
   const a = p.accusim;
   const part = (x) => { const cls = x.pct < 60 ? "low" : x.pct < 80 ? "mid" : ""; return `<div class="cond"><div class="lbl"><span>${esc(x.label)}</span><span>${Math.round(x.pct)}%</span></div><div class="bar"><i class="${cls}" style="width:${x.pct}%"></i></div></div>`; };
-  const bySys = Object.keys(SYS).map((k) => { const ps = a.parts.filter((x) => x.system === k).sort((x, y) => x.pct - y.pct); return ps.length ? `<h4>${SYS[k]}</h4>${ps.map(part).join("")}` : ""; }).join("");
+  const groups = Object.assign({}, SYS, { plugs: "Spark plugs" });
+  const bySys = Object.keys(groups).map((k) => { const ps = a.parts.filter((x) => x.system === k).sort((x, y) => x.pct - y.pct); return ps.length ? `<h4>${groups[k]}</h4>${ps.map(part).join("")}` : ""; }).join("");
+  const pl = a.plugs;
+  const plugs = pl && pl.fouled ? `<p><b>Spark plugs:</b> ${pl.fouled} of ${pl.count} fouled (lowest ${Math.round(pl.lowest)}%). <span class="hint">Rich idling on the ground fouls them. A run-up with the mixture leaned usually clears them, or clean them in the A2A tablet. They don't count toward the engine's condition.</span></p>` : "";
   const facts = [a.total_time != null ? `${a.total_time.toFixed(1)} h airframe` : "", a.engine_time != null ? `${a.engine_time.toFixed(1)} h engine` : "", a.oil_pct != null ? `oil ${Math.round(a.oil_pct)}%` : ""].filter(Boolean);
   return `<p><b>Condition from A2A AccuSim.</b> <span class="hint">${facts.join(" · ")}${a.age_min >= 2 ? ` · last read ${a.age_min} min ago` : ""}</span></p>
     <p class="hint">Onward reads the airplane's real condition and doesn't add wear or failures of its own. Do the maintenance in the A2A tablet (Maintenance page): Onward picks up the result automatically.</p>
-    ${a.failed.length ? `<p><b>Failed:</b> ${a.failed.map(esc).join(", ")}</p>` : ""}
+    ${a.failed.length ? `<p><b>Failed:</b> ${a.failed.map(esc).join(", ")}</p>` : ""}${plugs}
     ${a.worst.length ? `<h4>Needs attention</h4>${a.worst.map(part).join("")}` : `<p class="hint">Nothing below 90%.</p>`}
     <details id="accparts" ${accPartsOpen ? "open" : ""}><summary class="hint">All ${a.parts.length} parts</summary>${bySys}</details>`;
 }
