@@ -1,9 +1,10 @@
 {
-  "version": "0.27.0",
+  "version": "0.27.1",
   "date": "2026-11-08",
   "notes": [
-    "A2A aircraft: Onward reads the real condition from AccuSim (cylinders, magnetos, filters, tires, brakes, flaps and more) instead of keeping its own, and the Hangar shows the parts that need attention",
-    "With AccuSim, Onward no longer adds its own wear or failures on top of A2A's. Maintenance is done in the A2A tablet, and Onward picks it up",
-    "Fouled spark plugs are shown on their own and don't count against the engine"
+    "Each suggested flight now shows the key numbers at a glance: airfield code, flying time, runway and length (amber when it's short for your airplane), field elevation, weather category, wind and crosswind, and difficulty",
+    "If Onward is already running, starting it a second time says so and opens the running one, instead of quietly starting a second copy",
+    "The page reloads itself when the Onward behind it changes version, so it never shows an old screen after an update",
+    "Fixed: grass and gravel strips no longer read as \"Gre strip\" or \"Unk strip\""
   ]
 }

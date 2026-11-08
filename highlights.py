@@ -24,6 +24,20 @@ def terrain_points(dep, a, dist_nm):
     return ring, route
 
 
+SURFACES = {"GRE": "Grass", "GRS": "Grass", "GRASS": "Grass", "TURF": "Grass", "GRV": "Gravel", "GRAVEL": "Gravel",
+            "DIRT": "Dirt", "DRT": "Dirt", "SAND": "Sand", "SAN": "Sand", "CLA": "Clay", "CLAY": "Clay", "SNOW": "Snow",
+            "ICE": "Ice", "WATER": "Water", "COR": "Coral", "LAT": "Laterite", "SOIL": "Dirt", "EARTH": "Dirt"}
+
+
+def surface_word(raw):
+    """OurAirports surface codes ("GRE", "TURF-G", "Unk") as a word for a sentence; 'Unpaved' when unknown."""
+    r = (raw or "").upper().strip()
+    for code, word in SURFACES.items():
+        if r == code or r.startswith(code + "-") or r.startswith(code + " ") or (len(code) > 3 and code in r):
+            return word
+    return "Unpaved"
+
+
 def build(c, dep, prof, career, world, friend=None, ferry=False):
     """Returns a list of highlights, best first: {icon, text, kind, score}."""
     a, rw, wx = c["a"], c["rw"], c.get("wx")
@@ -94,7 +108,7 @@ def build(c, dep, prof, career, world, friend=None, ferry=False):
         elif ratio < 1.35:
             add("short", "📏", f"Snug runway: {rw['length']:,} ft", 2.2)
         if rw["surface"] == "unpaved":
-            add("grass", "🌾", f"{(rw.get('surface_raw') or 'unpaved').capitalize()} strip, not tarmac", 2.6)
+            add("grass", "🌾", f"{surface_word(rw.get('surface_raw'))} strip, not tarmac", 2.6)
         if rw.get("width") and 0 < rw["width"] <= 45:
             add("narrow", "↔", f"Narrow runway, only {rw['width']} ft wide", 2.0)
     if a["elev"] > 4000:

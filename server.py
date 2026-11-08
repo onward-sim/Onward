@@ -519,6 +519,8 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         q = parse_qs(u.query)
         try:
+            if u.path == "/api/version":  # cheap check, used by a second copy to see this one is running
+                return self._json({"app": "onward", "version": version.VERSION})
             if u.path == "/api/state":
                 if "cockpit" in q:
                     APP.cockpit_seen = time.time()
@@ -804,9 +806,18 @@ def main():
     ap.add_argument("--start", default="KHAF")
     ap.add_argument("--no-browser", action="store_true")
     a = ap.parse_args()
-    APP = App(demo=a.demo, start=a.start)
-    srv = ThreadingHTTPServer(("0.0.0.0", a.port), Handler)
     url = f"http://localhost:{a.port}"
+    if already_running(a.port):  # a second copy would share the port silently on Windows and confuse the browser
+        print(f"Onward is already running at {url}. Use that window, or close it first to start this copy.", flush=True)
+        if not a.no_browser:
+            webbrowser.open(url)
+        sys.exit(0)
+    APP = App(demo=a.demo, start=a.start)
+    try:
+        srv = ThreadingHTTPServer(("0.0.0.0", a.port), Handler)
+    except OSError as e:
+        print(f"Onward couldn't use port {a.port} ({e}). Another program, or another copy of Onward, is using it.", flush=True)
+        sys.exit(1)
     log(f"Onward is running at {url}  (other devices on your network: http://<this PC's IP>:{a.port})")
     if not a.no_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
@@ -814,6 +825,16 @@ def main():
         srv.serve_forever()
     except KeyboardInterrupt:
         pass
+
+
+def already_running(port):
+    """True when an Onward answers on this port already."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/version", timeout=2) as r:
+            return b"onward" in r.read().lower()
+    except Exception:
+        return False
 
 
 if __name__ == "__main__":

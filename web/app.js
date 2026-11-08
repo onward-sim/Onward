@@ -644,6 +644,26 @@ function runwayChips(o) {
   const xw = r.crosswind != null ? `<span class="chip ${r.crosswind >= 12 ? "warn" : ""}">X-wind ${r.crosswind} kt${r.headwind < 0 ? `, tail ${-r.headwind}` : ""}</span>` : "";
   return `<span class="chip">RWY ${esc(r.end || r.id)} · ${r.length.toLocaleString()} ft · ${r.surface}</span>${o.night ? `<span class="chip ${r.lighted ? "" : "bad"}">${r.lighted ? "Lighted" : "Unlit!"}</span>` : ""}${xw}`;
 }
+// The key numbers for a destination at a glance: code, time, runway, field elevation, wind, weather, difficulty
+function offerFacts(o) {
+  const d = o.dest || {}, r = o.runway || {}, w = o.weather;
+  const f = [];
+  f.push(`<b>${esc(d.code || "no code")}</b>`);
+  f.push(fmtMin(o.ete_min));
+  if (r.length) {
+    const short = r.length < ((S.aircraft || {}).min_runway_ft || 0);
+    const surf = r.surface && r.surface !== "unknown" ? ` ${esc(r.surface)}` : "";
+    f.push(`<span class="${short ? "warn" : ""}">RWY ${esc(r.end || r.id)} · ${r.length.toLocaleString()} ft${surf}</span>`);
+  } else f.push(`<span class="warn">runway unknown</span>`);
+  if (d.elev != null) f.push(`elev ${d.elev.toLocaleString()} ft`);
+  if (w) {
+    const wind = w.wspd ? `${w.vrb || w.wdir == null ? "VRB" : String(Math.round(w.wdir)).padStart(3, "0")}/${Math.round(w.wspd)}${w.wgst ? "G" + Math.round(w.wgst) : ""} kt` : "calm";
+    const xw = r.crosswind != null && r.crosswind >= 5 ? ` <span class="${r.crosswind >= 12 ? "warn" : ""}">X-wind ${r.crosswind}</span>` : "";
+    f.push(`<span class="cat ${esc(w.cat)}">${esc(w.cat)}</span> ${wind}${xw}`);
+  }
+  if (o.night) f.push(`<span class="${r.lighted ? "" : "bad"}">after dark${r.lighted ? ", lit" : ", unlit!"}</span>`);
+  return f.map((x) => `<span class="fx">${x}</span>`).join(` <i>·</i> `) + ` <span class="fx">${stars(o.difficulty || 1, o.difficulty_why)}</span>`;
+}
 let openOffer = null, filtersOpen = true;
 const KIND = { scenic: "Scenic", tour: "Wander", challenge: "Challenge", ride: "A ride for a friend", ferry: "Maintenance ferry", trip: "Trip leg", anywhere: "Your pick" };
 function offerCard(o, i) {
@@ -658,6 +678,7 @@ function offerCard(o, i) {
       <span class="t">${o.rules === "IFR" ? `<span class="ifr">IFR</span>` : ""}${o.trip_leg ? `<span class="ifr">TRIP ${o.trip_leg.n}/${o.trip_leg.of}</span>` : o.kind === "anywhere" ? `<span class="ifr">YOUR PICK</span>` : ""}${esc(o.title)}</span>
       <span class="d">${o.distance_nm} nm · ${surf}${w ? ` · ${w.cat}` : ""}</span>
       ${open ? "" : first ? `<span class="s">${esc(first.text)}</span>` : ""}
+      ${open ? "" : `<span class="f">${offerFacts(o)}</span>`}
     </div>`;
   if (!open) return `<div class="offer compact">${head}</div>`;
   return `<div class="offer open">${head}
@@ -1775,8 +1796,15 @@ function render() {
   if (tab === "hangar") renderHangar();
   if (tab === "settings") renderSettings();
 }
+let pageVersion = null;
 async function poll() {
-  try { S = await api("/api/state"); render(); } catch (e) { $("#sim").classList.remove("ok"); $("#sim span").textContent = "Server not running"; }
+  try {
+    S = await api("/api/state");
+    // a different Onward answered (updated, or another copy): this page's code may not match it, so reload
+    if (pageVersion && S.version && S.version !== pageVersion && !updRunning) { location.reload(); return; }
+    pageVersion = pageVersion || S.version;
+    render();
+  } catch (e) { $("#sim").classList.remove("ok"); $("#sim span").textContent = "Server not running"; }
 }
 poll();
 $("#voicebtn").onclick = async () => {

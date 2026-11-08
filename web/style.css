@@ -117,6 +117,18 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--lime); outl
 .ox .t { font: 400 25px/1.1 var(--serif); }
 .ox .d { font: 400 11px var(--mono); color: var(--mute); text-transform: uppercase; white-space: nowrap; }
 .ox .s { grid-column: 2 / 4; font-size: 13.5px; color: var(--ink2); }
+.ox .f { grid-column: 2 / 4; font: 400 11.5px/1.7 var(--mono); color: var(--ink2); margin-top: 3px; }
+.ox .f b { font-weight: 600; color: var(--ink); }
+.ox .f .fx { white-space: nowrap; }
+.ox .f i { font-style: normal; color: var(--mute); margin: 0 2px; }
+.ox .f .warn { color: var(--warn); }
+.ox .f .bad { color: var(--bad); }
+.ox .f .cat { font-weight: 600; }
+.ox .f .cat.VFR { color: var(--moss); }
+.ox .f .cat.MVFR { color: #2f6db5; }
+.ox .f .cat.IFR { color: var(--bad); }
+.ox .f .cat.LIFR { color: #8a3aa8; }
+.ox .f .stars { font-size: 11px; margin-left: 4px; }
 .ox .ifr { margin-right: 6px; }
 .offer.open { background: var(--card); border: 1px solid var(--line2); border-radius: var(--radius); padding: 18px 20px; margin: 10px 0; }
 .offer.open .ox .t { font-size: 32px; }

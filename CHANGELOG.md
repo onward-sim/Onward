@@ -1,5 +1,11 @@
 # What's new
 
+## 0.27.1
+- Each suggested flight now shows the key numbers at a glance: airfield code, flying time, runway and length (amber when it's short for your airplane), field elevation, weather category, wind and crosswind, and difficulty.
+- If Onward is already running, starting it a second time says so and opens the running one, instead of quietly starting a second copy.
+- The page reloads itself when the Onward behind it changes version, so it never shows an old screen after an update.
+- Fixed: grass and gravel strips no longer read as "Gre strip" or "Unk strip".
+
 ## 0.27.0
 - A2A aircraft: Onward reads the real condition from AccuSim (cylinders, spark plugs, magnetos, filters, tires, brakes, flaps and more) instead of keeping its own, and the Hangar shows the parts that need attention.
 - Fouled spark plugs are shown on their own and don't count against the engine: a leaned run-up or Clean spark plugs in the tablet clears them.

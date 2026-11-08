@@ -105,6 +105,8 @@ _fail = accusim.summarize(dict(_raw, F_AntennaCom1=1.0), 6)
 check("AccuSim failures listed", _fail["failed"] == ["COM 1 antenna"], _fail["failed"])
 sys.path.insert(0, ROOT)
 import server  # noqa: E402
+import highlights  # noqa: E402
+check("surface codes read as words", [highlights.surface_word(x) for x in ("GRE", "Unk", "TURF-G")] == ["Grass", "Unpaved", "Grass"])
 check("log hides the user folder", server.HOME not in server._private(os.path.join(server.HOME, "Onward", "data")))
 col = [{"ft": 300, "t": 8, "rh": 70, "ws": 10, "wd": 270, "cc": 0}, {"ft": 2500, "t": 4, "rh": 80, "ws": 18, "wd": 270, "cc": 0},
        {"ft": 5000, "t": 0, "rh": 95, "ws": 25, "wd": 280, "cc": 90}, {"ft": 10000, "t": -8, "rh": 92, "ws": 35, "wd": 290, "cc": 80},
