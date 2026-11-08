@@ -90,7 +90,9 @@ import accusim  # noqa: E402
 _raw = tracker.demo_accusim()
 _sum = accusim.summarize(_raw, 6)
 check("AccuSim summary", _sum and set(_sum["systems"]) == {"engine", "airframe", "gear", "prop"}
-      and 75 < _sum["systems"]["engine"] < 82 and _sum["cylinders"] == 6, _sum and _sum["systems"])
+      and 82 < _sum["systems"]["engine"] < 90 and _sum["cylinders"] == 6, _sum and _sum["systems"])
+_dead = accusim.summarize(dict(_raw, C_Eng1_MagL=0.01), 6)
+check("a dead part still means damaged", _dead["systems"]["engine"] < 60, _dead["systems"])
 check("AccuSim worst part first", accusim.worst(_sum)[0]["label"] == "Oil filter", accusim.worst(_sum)[:2])
 check("AccuSim off means no summary", accusim.summarize(dict(_raw, AccusimPublic=0)) is None)
 _four = {k: v for k, v in _raw.items() if not any(f"Cyl{i}" in k or f"Cyl[{i}]" in k for i in (5, 6))}

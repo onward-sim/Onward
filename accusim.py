@@ -38,9 +38,11 @@ INFO = {"public": "AccusimPublic", "total_time": "TotalTime", "engine_time": "En
         "oil_pct": "Eng1_OilTankQuantityPct"}
 MAX_CYL = 6
 
-# The engine is judged on its worst part and its average: one tired oil filter makes it "worn",
-# a fouled plug or a weak cylinder makes it "damaged", but a single small item doesn't ground the airplane.
-WORST_WEIGHT = 0.6
+# Each system is judged on its average and, a little, on its worst part. A2A's tablet still shows parts around
+# 70% in green, so a tired oil filter alone shouldn't make the engine "worn"; a part near zero still drags the
+# system down to "damaged" and ferry flights only.
+WORST_WEIGHT = 0.3
+DEAD = 10  # % : below this a part counts as broken
 
 
 def cylinder_parts(n=MAX_CYL):
@@ -113,7 +115,10 @@ def summarize(raw, cylinders=None):
             parts.append({"id": name, "label": label, "system": system, "pct": pct})
             vals.append(pct)
         if vals:
-            systems[system] = round(WORST_WEIGHT * min(vals) + (1 - WORST_WEIGHT) * sum(vals) / len(vals), 1)
+            score = WORST_WEIGHT * min(vals) + (1 - WORST_WEIGHT) * sum(vals) / len(vals)
+            if min(vals) < DEAD:  # a part that's practically gone (a dead magneto fails the run-up): not airworthy
+                score = min(score, 55)
+            systems[system] = round(score, 1)
     plug_vals = []
     for name, label in plugs:
         v = val(name)
