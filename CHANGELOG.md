@@ -1,5 +1,9 @@
 # What's new
 
+## 0.26.5
+- Near airports, the side view now takes the low cloud from their latest weather reports (METARs) for the next few hours, like MSFS live weather does, and uses the forecast elsewhere.
+- The side view says which airports' reports it used.
+
 ## 0.26.4
 - Finding flights in a new area is about twice as fast: terrain downloads several map tiles at a time, while Onward looks for landmarks.
 - While it searches, Onward says what it's doing (with a count for the terrain) and that the first search in a new area takes longer.

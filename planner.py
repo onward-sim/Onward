@@ -491,7 +491,8 @@ class Planner:
                              "detail": "Back above the minimum safe altitude"})
         return {"terrain": terrain, "marks": marks, "alt": alt, "cruise": cruise, "msa": msa, "clouds": clouds, "aloft": aloft,
                 "freezing": frz, "total": round(total, 1), "issues": issues, "fixes": fixes, "hazards": hazards,
-                "wx": "ok" if pts else "none", "wx_source": (route_wx or {}).get("source")}
+                "wx": "ok" if pts else "none", "wx_source": (route_wx or {}).get("source"),
+                "cloud_metars": sorted({p["cloud_src"] for p in pts if p.get("cloud_src")})}
 
     @staticmethod
     def _hazards(route_wx, total, terrain):

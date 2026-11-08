@@ -671,10 +671,14 @@ def parse_metar(m):
             cat = "IFR"
         if (ceiling is not None and ceiling < 500) or (vis_sm is not None and vis_sm < 1):
             cat = "LIFR"
+    clouds = [[c["cover"], c["base"]] for c in m.get("clouds") or []
+              if c.get("cover") in ("FEW", "SCT", "BKN", "OVC", "OVX", "VV") and c.get("base") is not None]
+    elev = _f(m.get("elev"))
     return {"station": m.get("icaoId"), "lat": lat, "lon": lon, "raw": m.get("rawOb", ""),
             "wdir": wdir, "wspd": wspd, "wgst": wgst, "vis": vis_sm, "ceiling": ceiling,
             "cat": cat, "temp": _f(m.get("temp")), "vrb": m.get("wdir") == "VRB",
-            "wx": m.get("wxString") or ""}
+            "wx": m.get("wxString") or "", "clouds": clouds, "elev_ft": None if elev is None else elev * 3.28084,
+            "obs": m.get("obsTime"), "clear": (m.get("cover") or "") in ("CAVOK", "CLR", "SKC", "NSC", "NCD")}
 
 
 # ---------------- Landmarks ----------------

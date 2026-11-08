@@ -93,6 +93,12 @@ cu = [{"ft": 2600, "t": 14, "rh": 55, "ws": 5, "wd": 220, "cc": 5}, {"ft": 5000,
 sct = briefing.low_layer(cu, 3000, 14, 4, 40, briefing.layers(cu, 3000))
 check("scattered cumulus shown", sct is not None and 6500 <= sct[0] <= 7500 and sct[1] >= 9500 and sct[2] == 40, sct)
 check("no cumulus on a clear day", briefing.low_layer(cu, 3000, 14, 4, 10, []) is None)
+# near an airport the METAR's cloud wins below the height it covers (that's what MSFS live weather uses)
+ml = briefing.metar_layers({"elev_ft": 3000, "clouds": [["BKN", 1400], ["BKN", 2000]], "clear": False}, cu)
+check("METAR cloud layers", ml and [l[0] for l in ml[0]] == [4400, 5000] and ml[0][0][2] == 70 and ml[1] >= 8000, ml)
+cav = briefing.metar_layers({"elev_ft": 2900, "clouds": [], "clear": True}, cu)
+check("CAVOK clears the low sky", cav and cav[0] == [] and cav[1] == 7900, cav)
+check("METAR without cloud groups is ignored", briefing.metar_layers({"elev_ft": 2900, "clouds": [], "clear": False}, cu) is None)
 try:
     import terrain
     h = terrain.elevation_m(39.09, -120.04)

@@ -1,7 +1,7 @@
 """Pre-flight checks: the weather along the route and takeoff/landing distances."""
 import json
 import math
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import data
 import geo
@@ -94,6 +94,37 @@ def low_layer(col, ground_ft, t, td, low, lay):
     return [round(base / 100) * 100, round(min(top, base + 10000) / 100) * 100, round(low)]
 
 
+COVER_PCT = {"FEW": 20, "SCT": 40, "BKN": 70, "OVC": 100, "OVX": 100, "VV": 100}
+METAR_NM = 20        # a point this close to a reporting airport uses its METAR for the low cloud
+METAR_HOURS = 3      # ...if you'll be there within this many hours
+METAR_AGE_S = 2 * 3600
+
+
+def metar_layers(m, col):
+    """Cloud layers from a METAR, [[base, top, cover], ...] in feet above sea level, plus how high the report
+    reaches (a METAR only covers the lower sky: CAVOK and NSC mean nothing below 5,000 ft above the field).
+    MSFS live weather is built largely from these reports, so near an airport they beat the forecast.
+    The top of each layer comes from the forecast humidity above it. None when the report says nothing usable."""
+    elev = m.get("elev_ft")
+    clouds = m.get("clouds") or []
+    if elev is None or (not clouds and not m.get("clear")):
+        return None
+    out = []
+    for cover, base in clouds:
+        b = elev + base
+        top, ft = b + 1000, b + 500
+        while col and ft <= min(col[-1]["ft"], b + 5000):
+            a = _interp(col, ft)
+            if a is not None:
+                if a["rh"] < 70:
+                    break
+                top = max(top, ft)
+            ft += 500
+        out.append([round(b / 100) * 100, round(top / 100) * 100, COVER_PCT.get(cover, 50)])
+    reach = elev + max(5000, max((base for _, base in clouds), default=0) + 2000)
+    return out, reach
+
+
 def _bands(flags, step):
     """[(ft, bool)] in 500 ft steps -> [[lo, hi], ...] where the flag is set."""
     out, lo = [], None
@@ -173,6 +204,15 @@ def route_weather(route, ete_min, when, cruise_alt, ifr, weather, dest, msa, log
            + "&longitude=" + ",".join(f"{p['lon']:.3f}" for p in pts)
            + f"&hourly={hourly}&wind_speed_unit=kn&forecast_days=2&timezone=UTC")
     rows, fails = [], False
+    metars = []
+    if weather is not None and pts:
+        try:
+            mid = pts[len(pts) // 2]
+            span = max(geo.dist_nm(mid["lat"], mid["lon"], p["lat"], p["lon"]) for p in pts)
+            metars = weather.around(mid["lat"], mid["lon"], span + METAR_NM)
+        except Exception as e:
+            log(f"METARs for the side view failed: {e}")
+    now = datetime.now(timezone.utc)
     try:
         raw = json.loads(data.forecast_get(url, timeout=20))
         if isinstance(raw, dict):
@@ -190,13 +230,22 @@ def route_weather(route, ete_min, when, cruise_alt, ifr, weather, dest, msa, log
             vis = g("visibility")
             col = _column(h, i, ground)
             lay = layers(col, ground)
-            extra = low_layer(col, ground, t, td, low, lay)
-            if extra:
-                lay = sorted(lay + [extra])
+            src = None
+            near = data.Weather.nearest(metars, p["lat"], p["lon"], METAR_NM) if metars else None
+            eta = p["eta"] if p["eta"].tzinfo else p["eta"].replace(tzinfo=timezone.utc)
+            if near and (eta - now).total_seconds() < METAR_HOURS * 3600 and now.timestamp() - (near.get("obs") or 0) < METAR_AGE_S:
+                ml = metar_layers(near, col)
+                if ml:  # the airport's report replaces the forecast below the height it covers
+                    lay = sorted([l for l in lay if l[0] >= ml[1]] + ml[0])
+                    src = near["station"]
+            if src is None:
+                extra = low_layer(col, ground, t, td, low, lay)
+                if extra:
+                    lay = sorted(lay + [extra])
             solid = [l for l in lay if l[2] >= 50]
             if solid:  # the cloud cover at each height beats the temperature/dew point estimate
                 base = max(0, round((solid[0][0] - ground) / 100) * 100)
-            rows.append({"name": p["name"], "layers": lay, "sky": g("cloud_cover"), "high_cloud": g("cloud_cover_high"), "eta": p["eta"].strftime("%H:%MZ"), "frac": round(p["frac"], 3), "low_cloud": low, "mid_cloud": g("cloud_cover_mid"),
+            rows.append({"name": p["name"], "layers": lay, "cloud_src": src, "sky": g("cloud_cover"), "high_cloud": g("cloud_cover_high"), "eta": p["eta"].strftime("%H:%MZ"), "frac": round(p["frac"], 3), "low_cloud": low, "mid_cloud": g("cloud_cover_mid"),
                          "base_agl": base, "base_msl": None if base is None else round((ground + base) / 100) * 100,
                          "vis_km": None if vis is None else round(vis / 1000, 1), "rain_mm": g("precipitation"),
                          "gust_kt": g("wind_gusts_10m"), "freezing_ft": None if g("freezing_level_height") is None else round(g("freezing_level_height") * 3.28084 / 100) * 100,
