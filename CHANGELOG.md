@@ -1,7 +1,8 @@
 # What's new
 
-## Unreleased
+## 0.27.0
 - A2A aircraft: Onward reads the real condition from AccuSim (cylinders, spark plugs, magnetos, filters, tires, brakes, flaps and more) instead of keeping its own, and the Hangar shows the parts that need attention.
+- Fouled spark plugs are shown on their own and don't count against the engine: a leaned run-up or Clean spark plugs in the tablet clears them.
 - With AccuSim, Onward no longer adds its own wear or failures on top of A2A's. Maintenance is done in the A2A tablet, and Onward picks it up.
 
 ## 0.26.6

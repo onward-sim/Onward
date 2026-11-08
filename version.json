@@ -1,8 +1,9 @@
 {
-  "version": "0.26.6",
+  "version": "0.27.0",
   "date": "2026-11-08",
   "notes": [
-    "Fixed: a daytime landing could be written up as a night landing when the flight had been picked hours earlier. Onward now checks the sun at the moment you land, using the sim's own clock",
-    "A well-flared landing that touches down near the stall no longer loses points or gets a \"close to the stall\" note: the approach speed is for over the fence, not for touchdown"
+    "A2A aircraft: Onward reads the real condition from AccuSim (cylinders, magnetos, filters, tires, brakes, flaps and more) instead of keeping its own, and the Hangar shows the parts that need attention",
+    "With AccuSim, Onward no longer adds its own wear or failures on top of A2A's. Maintenance is done in the A2A tablet, and Onward picks it up",
+    "Fouled spark plugs are shown on their own and don't count against the engine"
   ]
 }
