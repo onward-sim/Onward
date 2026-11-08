@@ -75,6 +75,13 @@ half = _src.read()
 for _k in tracker.FAST:
     if _src.reqs[_k].value is None:
         _src.reqs[_k].value = 1.0
+# night is judged from the sim's clock at landing: León at 10:00Z on 8 November is daylight, 20:00Z is dark
+import geo  # noqa: E402
+_day = tracker.sim_time({"zulu_year": 2026, "zulu_doy": 312, "zulu_s": 36000})
+_dark = tracker.sim_time({"zulu_year": 2026, "zulu_doy": 312, "zulu_s": 72000})
+check("night from the sim clock", geo.solar_elevation(42.59, -5.65, _day) > 0 > geo.solar_elevation(42.59, -5.65, _dark) + 4
+      and _day.hour == 10, (_day, _dark))
+check("sim clock missing falls back to now", abs((tracker.sim_time({}) - __import__("datetime").datetime.now(__import__("datetime").timezone.utc)).total_seconds()) < 5)
 check("half sample from MSFS waits", half is None and (_src.read() or {}).get("lat") == 37.5, half)
 sys.path.insert(0, ROOT)
 import server  # noqa: E402

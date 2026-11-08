@@ -1,8 +1,8 @@
 {
-  "version": "0.26.5",
+  "version": "0.26.6",
   "date": "2026-11-08",
   "notes": [
-    "Near airports, the side view now takes the low cloud from their latest weather reports (METARs) for the next few hours, like MSFS live weather does, and uses the forecast elsewhere",
-    "The side view says which airports' reports it used"
+    "Fixed: a daytime landing could be written up as a night landing when the flight had been picked hours earlier. Onward now checks the sun at the moment you land, using the sim's own clock",
+    "A well-flared landing that touches down near the stall no longer loses points or gets a \"close to the stall\" note: the approach speed is for over the fence, not for touchdown"
   ]
 }

@@ -29,7 +29,21 @@ SLOW = {
     "combustion": ("GENERAL ENG COMBUSTION:1", "bool"),
     "flaps": ("FLAPS HANDLE INDEX", "number"), "gear": ("GEAR HANDLE POSITION", "bool"),
     "crash": ("CRASH FLAG", "enum"), "slew": ("IS SLEW ACTIVE", "bool"),
+    # the sim's own clock, so "night" means night in the sim (which can be set to any time)
+    "zulu_s": ("E:ZULU TIME", "seconds"), "zulu_doy": ("E:ZULU DAY OF YEAR", "number"), "zulu_year": ("E:ZULU YEAR", "number"),
 }
+
+
+def sim_time(s):
+    """The sim's UTC time from a sample, or the real time when the sim doesn't say."""
+    from datetime import datetime, timedelta, timezone
+    try:
+        y, d, sec = int(s["zulu_year"]), int(s["zulu_doy"]), float(s["zulu_s"])
+        if 1990 < y < 2200 and 1 <= d <= 366:
+            return datetime(y, 1, 1, tzinfo=timezone.utc) + timedelta(days=d - 1, seconds=sec)
+    except (KeyError, TypeError, ValueError):
+        pass
+    return datetime.now(timezone.utc)
 
 FAILURES = {
     "engine": [("TOGGLE_VACUUM_FAILURE", "Vacuum pump failure"), ("TOGGLE_ELECTRICAL_FAILURE", "Electrical failure")],
@@ -613,14 +627,16 @@ class Tracker:
         # sink rate
         out_of += 35
         pts += 35 if fpm <= 120 else 32 if fpm <= 200 else 27 if fpm <= 300 else 18 if fpm <= 450 else 10 if fpm <= 600 else 0
-        # speed at touchdown vs approach speed
+        # speed at touchdown: anywhere from a held-off, nearly stalled touchdown up to the approach speed is good.
+        # Vref is the speed over the fence; a well-flared landing touches down well below it, near the stall.
+        vso = prof.get("vso") or round(vref / 1.3)
         delta = ias - vref
         out_of += 15
-        if -12 <= delta <= 3:
+        if ias < vso * 0.8:
+            pts += 12
+            card["notes"].append(f"Touched down at {round(ias)} kt, right at the stall: no margin left")
+        elif delta <= 3:
             pts += 15
-        elif delta < -12:
-            pts += 8
-            card["notes"].append(f"Touched down slow ({round(ias)} kt): close to the stall")
         elif delta <= 8:
             pts += 10
         elif delta <= 15:
@@ -1044,7 +1060,10 @@ class Tracker:
                 else:
                     parts.append(story.pick(story.DIVERT, **fmt))
             else:
-                parts.append(story.pick(story.NIGHT_ARRIVAL if job.get("night") else story.ARRIVAL, **fmt))
+                # dark when you actually landed, in the sim (the offer's guess can be hours old)
+                night = geo.solar_elevation(final["lat"], final["lon"], sim_time(s)) < -4
+                job["night"] = night
+                parts.append(story.pick(story.NIGHT_ARRIVAL if night else story.ARRIVAL, **fmt))
             if job.get("rules") == "IFR" and outcome in ("arrived", "diverted"):
                 parts.append("Flown IFR, mostly inside the grey." if is_grey(job) else "Flown IFR.")
             if f["go_arounds"]:
