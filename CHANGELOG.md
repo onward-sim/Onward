@@ -1,5 +1,8 @@
 # What's new
 
+## 0.27.2
+- The option for strips with no sim code or unknown runway is now called "Off the map", with a line explaining that the sim may show a field, a farm or nothing at all there.
+
 ## 0.27.1
 - Each suggested flight now shows the key numbers at a glance: airfield code, flying time, runway and length (amber when it's short for your airplane), field elevation, weather category, wind and crosswind, and difficulty.
 - If Onward is already running, starting it a second time says so and opens the running one, instead of quietly starting a second copy.

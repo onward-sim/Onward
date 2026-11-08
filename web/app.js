@@ -625,7 +625,8 @@ function prefsForm() {
     <label>Weather (live)</label>${seg("weather", [["vfr", "VFR only"], ["marginal", "Up to MVFR"], ["any", "Anything"]])}
     <label>Darkness</label>${seg("night", [["day", "Daylight arrivals"], ["lit_only", "Night if lit"], ["any", "Anything goes"]])}
     <label class="toggle"><input type="checkbox" id="pbush" ${p.bush ? "checked" : ""}> Bush mood: favor short and unpaved strips</label>
-    <label class="toggle"><input type="checkbox" id="punch" ${p.uncharted ? "checked" : ""}> Include strips with unknown runway data or no sim code</label>
+    <label class="toggle"><input type="checkbox" id="punch" ${p.uncharted ? "checked" : ""}> Off the map: include strips the sim may not have</label>
+    <p class="hint" style="margin:-4px 0 8px 28px">No sim code or unknown runway. The sim may show a field, a farm or nothing at all. Overfly and inspect before landing.</p>
     <label class="toggle"><input type="checkbox" id="pnew" ${p.prefer_new ? "checked" : ""}> Prefer places I haven't been</label>
     <div style="margin-top:14px"><button class="btn big" id="find" ${S.gen.running ? "disabled" : ""}>${S.gen.running ? esc(S.gen.progress || "Finding flights…") : "Find adventures"}</button>${S.gen.running ? `<p class="hint">Onward is working on it. The first search in a new area can take up to a minute while it downloads terrain and landmarks; after that it's quick.</p>` : ""}</div>
   </div>`;
