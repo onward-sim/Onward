@@ -579,3 +579,7 @@ ul.credits li { margin: 2px 0; }
 /* AccuSim parts in the hangar */
 .card h4 { font: 600 11px var(--sans); text-transform: uppercase; letter-spacing: .08em; color: var(--mute); margin: 16px 0 6px; }
 .card details summary { cursor: pointer; margin-top: 12px; }
+
+/* delete button in the photo viewer */
+.lightbox .lb-del { display: block; margin: 10px auto 0; background: transparent; border: 1px solid rgba(255,255,255,.35); color: #f4f2ec; border-radius: 8px; padding: 6px 14px; font: 500 13px var(--sans); cursor: pointer; }
+.lightbox .lb-del:hover { background: var(--bad); border-color: var(--bad); }

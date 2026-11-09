@@ -1572,6 +1572,17 @@ function openPhoto(list, i) {
 const closePhoto = () => { $("#lightbox").classList.remove("on"); $("#lbimg").src = ""; };
 $("#lbx").onclick = closePhoto;
 $("#lightbox").onclick = (e) => { if (e.target.id === "lightbox") closePhoto(); };
+$("#lbdel").onclick = async () => {
+  const p = lbList[lbIdx];
+  if (!p || !confirm("Delete this photo? It's removed from the leg, the journal and the World map, and the copy in Onward's photos folder is deleted. The original screenshot stays where the sim saved it.")) return;
+  const r = await api("/api/photo/delete", { file: p.file });
+  if (r && r.error) { toast(r.error); return; }
+  lbList.splice(lbIdx, 1);
+  if (lbList.length) openPhoto(lbList, Math.min(lbIdx, lbList.length - 1)); else closePhoto();
+  toast("Photo deleted.", true);
+  keys = {}; if (tab === "journal") renderJournal(); if (tab === "world") renderWorld();
+  await poll();
+};
 $("#lbprev").onclick = () => lbIdx > 0 && openPhoto(lbList, lbIdx - 1);
 $("#lbnext").onclick = () => lbIdx < lbList.length - 1 && openPhoto(lbList, lbIdx + 1);
 document.addEventListener("keydown", (e) => {

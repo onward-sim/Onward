@@ -459,6 +459,45 @@ class App:
             threading.Thread(target=lambda: (self.ensure_plan(job, rebuild=True), c.save(), self.auto_gtn(job)), daemon=True).start()
         c.save()
 
+    def delete_photo(self, file):
+        """Remove a screenshot everywhere it shows (the current leg, the journal, the debrief) and delete its files.
+        On the current leg it stays listed as skipped, so the screenshot folder scan doesn't bring it back."""
+        import photos
+        if not file:
+            return "No photo given."
+        base = os.path.abspath(photos.PHOTO_DIR)
+        c = self.career
+        found, thumb = False, None
+        with c.lock:
+            job = c.s.get("job")
+            for i, p in enumerate((job or {}).get("photos", [])):
+                if p.get("file") == file:
+                    thumb, found = p.get("thumb"), True
+                    job["photos"][i] = {"src": p.get("src", ""), "skip": True}
+            for e in c.s.get("journal", []):
+                ph = e.get("photos") or []
+                keep = [p for p in ph if p.get("file") != file]
+                if len(keep) != len(ph):
+                    thumb = thumb or next((p.get("thumb") for p in ph if p.get("file") == file), None)
+                    e["photos"], found = keep, True
+            lr = c.s.get("last_result")
+            if lr and lr.get("photos"):
+                lr["photos"] = [p for p in lr["photos"] if p.get("file") != file]
+            c.save()
+        if not found:
+            return "That photo isn't in your journal any more."
+        for rel in (file, thumb):  # only ever inside the photos folder
+            if not rel:
+                continue
+            full = os.path.normpath(os.path.join(base, rel))
+            if full.startswith(base + os.sep) and os.path.isfile(full):
+                try:
+                    os.remove(full)
+                except OSError as e:
+                    log(f"Couldn't delete {rel}: {e}")
+        log(f"Deleted photo {file}")
+        return None
+
     def auto_gtn(self, job):
         """With "save it for the GTN automatically" on, write the .gfp whenever a leg is taken or its plan changes."""
         if job and self.career.s["settings"].get("gtn_auto") and not self.demo:
@@ -738,6 +777,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json({"error": "No such flight"}, 404)
                 path, err = APP.save_gtn(job)
                 return self._json({"error": err} if err else {"ok": True, "path": path, "name": os.path.basename(path)})
+            elif u.path == "/api/photo/delete":
+                err = APP.delete_photo(b.get("file"))
             elif u.path == "/api/cancel":
                 err = APP.cancel()
             elif u.path == "/api/finish":

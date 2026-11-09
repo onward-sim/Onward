@@ -118,7 +118,7 @@ Once a trip is running, its next leg shows up first in Fly whenever you're at it
 
 Take screenshots as you fly and Onward adds them to the leg on its own. It watches the usual folders: the Xbox Game Bar captures folder (Win+Alt+PrtScn), Pictures\Screenshots (Win+PrtScn), and Steam's MSFS screenshot folder (F12). If you save screenshots somewhere else, add that folder in Settings, where you can also see which folders it found.
 
-Each photo is copied into `data\photos`, placed on the map where you were when you took it, and labeled with what you were near ("over the Golden Gate Bridge", "near Sausalito", "at Half Moon Bay Airport"). They show up in the flight panel, the debrief and the journal entry. Click one to see it full size and use the arrow keys to browse.
+Each photo is copied into `data\photos`, placed on the map where you were when you took it, and labeled with what you were near ("over the Golden Gate Bridge", "near Sausalito", "at Half Moon Bay Airport"). They show up in the flight panel, the debrief and the journal entry. Click one to see it full size and use the arrow keys to browse. To remove one, open it and press **Delete photo**: it disappears from the leg, the journal and the World map, and Onward's copy is deleted (the original screenshot stays where the sim saved it).
 
 The **World** tab shows the whole journey: every track you've flown, every airfield, and every photo where you took it, with your totals in the corner.
 

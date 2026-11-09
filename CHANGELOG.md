@@ -1,5 +1,8 @@
 # What's new
 
+## 0.27.7
+- Delete photos: open a photo and press Delete photo. It's removed from the leg, the journal and the World map (the original screenshot stays where the sim saved it).
+
 ## 0.27.6
 - Fixed: switching airplanes in the sim after taking a leg kept the old airplane's limits, so an SR22 got "Gear down above its limit speed" from the Comanche's rules. Onward now switches the leg to the airplane you're flying, drops any wear it measured against the wrong one, and rebuilds the plan if you haven't taken off yet.
 
