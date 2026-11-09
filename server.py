@@ -148,9 +148,13 @@ class App:
         live = self.tracker.view()
         title = (live.get("sample") or {}).get("title")
         detected = self.detect_aircraft(title)
-        if detected and detected != c.s["current_aircraft"] and not c.s.get("job") and c.status() != "in_repair":
-            c.set_aircraft(detected)
-            log(f"Aircraft detected: {self.profiles[detected]['name']}")
+        if detected and detected != c.s["current_aircraft"]:
+            if not c.s.get("job"):
+                if c.status() != "in_repair":
+                    c.set_aircraft(detected)
+                    log(f"Aircraft detected: {self.profiles[detected]['name']}")
+            else:
+                self.switch_leg_aircraft(detected)
         here = c.loc()
         snap = c.snapshot()
         plane = c.plane()
@@ -430,6 +434,30 @@ class App:
             return None, f"Windows didn't allow Onward to write to {folder}. Give your user full control of that folder (right-click, Properties, Security)."
         except OSError as e:
             return None, f"Couldn't save the GTN flight plan ({e})."
+
+    def switch_leg_aircraft(self, pid):
+        """The sim has a different airplane from the one the leg was taken with: fly it with that airplane's limits.
+        Without this, an SR22 flown on a leg taken in the Comanche was judged by the Comanche's gear limit."""
+        c = self.career
+        job = c.s.get("job")
+        old = self.profiles.get(c.s["current_aircraft"], {}).get("name", "the previous airplane")
+        new = self.profiles[pid]["name"]
+        c.set_aircraft(pid)
+        job["aircraft"] = pid
+        f = self.tracker.f
+        dropped = False
+        with self.tracker.lock:
+            if f:
+                dropped = bool(f.get("events"))
+                f["events"], f["acc"], f["exceed"] = [], {}, {}
+                f["planned"] = []  # failures planned for the other airplane
+        airborne = bool(f and f.get("takeoff_t"))
+        self.tracker.msg(f"You're flying the {new}, not the {old} this leg was taken with. Onward now uses the {new}'s limits"
+                         + (", and drops the wear it measured against the other airplane's." if dropped else "."), "warn")
+        log(f"Aircraft changed during the leg: {old} -> {new}")
+        if not airborne:  # speeds, fuel and climb change the plan: rebuild it for the new airplane
+            threading.Thread(target=lambda: (self.ensure_plan(job, rebuild=True), c.save(), self.auto_gtn(job)), daemon=True).start()
+        c.save()
 
     def auto_gtn(self, job):
         """With "save it for the GTN automatically" on, write the .gfp whenever a leg is taken or its plan changes."""

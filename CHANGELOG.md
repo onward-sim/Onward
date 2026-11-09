@@ -1,5 +1,8 @@
 # What's new
 
+## 0.27.6
+- Fixed: switching airplanes in the sim after taking a leg kept the old airplane's limits, so an SR22 got "Gear down above its limit speed" from the Comanche's rules. Onward now switches the leg to the airplane you're flying, drops any wear it measured against the wrong one, and rebuilds the plan if you haven't taken off yet.
+
 ## 0.27.5
 - Onward no longer sends flight plans to the sim: MSFS 2024 only took the waypoints, without the airports or the EFB. Download the .pln and load it in the world map or the EFB (Load from PC).
 - "Save the flight plan for the GTN automatically" now saves it when you take a leg, and again when you change its plan.
