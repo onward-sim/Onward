@@ -29,7 +29,7 @@ Updates only replace the program files. Your career, journal, photos and setting
 ## How a leg works
 
 1. In **Fly**, set the distance and mood (relaxed or tough, grass strips, weather, darkness) and press **Find adventures**. You get about a dozen flights spread across your distance range, shortest first. Click one to see the details.
-2. Take one. If the sim is running, Onward sends the flight plan straight to MSFS (or press **Send to the sim**). You can also download the **.pln** and load it in the world map.
+2. Take one, press **Download .pln for MSFS** and load it in the MSFS world map or the EFB (Load from PC). With a TDS GTNXi, **Save for the GTNXi** puts the plan straight into the GTN.
 3. In MSFS, start a **Free Flight** at the departure airfield with the aircraft you want. Onward detects common GA aircraft by name (C172, C182, Comanche, SR22, Bonanza, Cubs, Beaver, Kodiak and more).
 4. Fly. Onward tracks the flight, marks sights you pass within 2.5 nm, and logs every exceedance.
 5. Land, taxi in and shut down the engine. The debrief and journal entry appear on their own (or press **Finish leg**).
@@ -54,9 +54,9 @@ Every flight plan starts with **Weather along the route**: a verdict (looks good
 
 Below the navlog you'll find the **takeoff and landing distances** over a 50 ft obstacle, worked out from the aircraft's book numbers and corrected for density altitude, wind and grass. Green means plenty of runway, amber means tight, red means it doesn't fit.
 
-## Sending the plan to the sim
+## Getting the plan into the sim
 
-When you take a leg and the sim is connected, Onward writes the .pln to `data\plans` and asks MSFS to load it through SimConnect. If the sim isn't running yet, it does this as soon as it connects. Turn it off in Settings if you'd rather load plans yourself. If MSFS doesn't pick it up, use **Download .pln** and the world map as before.
+Press **Download .pln for MSFS** and load the file in the world map before the flight, or in the EFB with Load from PC. Onward doesn't send plans to the sim by itself: MSFS 2024 only takes part of a plan sent from outside (the waypoints, not the airports or the EFB), so loading it yourself is the reliable way.
 
 ## Landing scorecard and stable approach
 
@@ -91,11 +91,11 @@ Open the plan on any flight (or on the leg you've taken, before takeoff) and it 
 - **Side view:** under the map, the terrain along the route, your altitude, the minimum safe altitude, forecast cloud layers (and a band along the top when the overcast is higher up) and the freezing level. Drag the line up or down to change the cruise altitude. If it clips terrain or cloud, Onward says where and offers ways out: a different altitude, the lower ground, or leaving an hour or two later when the forecast improves.
 - **Hazards on the side view:** icing (moist air between 0 and -15 °C), turbulence (wind changing fast with height, gusts near the ground, strong wind over high ground) and storms, each drawn where and at what height the forecast puts them, for the time you'll pass each point. Hover to read them. MSFS live weather can differ from the forecast.
 
-The .pln you download (or send to the sim) follows your edited route.
+The .pln you download follows your edited route.
 
 ## GTN flight plans (TDS GTNXi)
 
-In the plan, **Save for the GTNXi** writes the leg as a Garmin .gfp file to `C:\ProgramData\TDS\GTNXi\FPL` (change the folder in Settings). Airports go in by their code and every other waypoint by its coordinates, so nothing imports as a locked waypoint; the GTN shows them as user waypoints. To load it on the GTN: Flight Plan, Menu, Catalog, Menu, Import. Tick **Also save it for the GTN** in Settings to save one automatically whenever the plan goes to the sim. If Windows won't let Onward write there, give your user full control of that folder.
+In the plan, **Save for the GTNXi** writes the leg as a Garmin .gfp file to `C:\ProgramData\TDS\GTNXi\FPL` (change the folder in Settings). Airports go in by their code and every other waypoint by its coordinates, so nothing imports as a locked waypoint; the GTN shows them as user waypoints. To load it on the GTN: Flight Plan, Menu, Catalog, Menu, Import. Tick **Save the flight plan for the GTN automatically** in Settings to save one whenever you take a leg (and again if you change its plan). If Windows won't let Onward write there, give your user full control of that folder.
 
 ## Plan a trip
 

@@ -882,7 +882,6 @@ function planHtml(p, id) {
   const f = p.fuel;
   const sb = p.simbrief ? `<a class="btn" href="${p.simbrief}" target="_blank" rel="noopener">Plan in SimBrief</a>` : "";
   const isJob = S.job && S.job.id === id;
-  const sent = isJob && S.job.plan_sent;
   const w = p.route_weather, ld = p.performance && p.performance.landing, to = p.performance && p.performance.takeoff;
   const verdict = w && { go: "Looks good", care: "Flyable, with care", think_twice: "Think twice", unknown: "Forecast unavailable" }[w.verdict];
   const frz = w && w.points && w.points.map((x) => x.freezing_ft).filter((x) => x != null);
@@ -915,7 +914,7 @@ function planHtml(p, id) {
     ${wxBriefHtml(p.route_weather)}
     ${perfHtml(p.performance, S.aircraft)}
     ${p.notes.length ? `<ul class="why">${p.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
-    <div class="row" style="margin-top:10px">${isJob ? `<button class="btn ${sent ? "ghost" : "lime"}" id="sendplan">${sent ? "Sent to the sim ✓ (send again)" : "Send to the sim"}</button>` : ""}${sb}<a class="btn ghost" href="/api/pln?id=${id}">Download .pln for MSFS</a><button class="btn ghost" data-gtn="${id}">Save for the GTNXi</button><a class="btn ghost" href="/api/navlog?id=${id}" target="_blank">Printable navlog</a><button class="btn ghost" data-replan="${id}">Refresh</button></div>
+    <div class="row" style="margin-top:10px">${sb}<a class="btn ghost" href="/api/pln?id=${id}">Download .pln for MSFS</a><button class="btn ghost" data-gtn="${id}">Save for the GTNXi</button><a class="btn ghost" href="/api/navlog?id=${id}" target="_blank">Printable navlog</a><button class="btn ghost" data-replan="${id}">Refresh</button></div>
     ${arrivalHtml(p.arrival, false)}
     <p class="hint">Planned ${esc(p.built_at)}. Terrain and winds from Open-Meteo, navaids and frequencies from OurAirports. Real-world data, so double-check against the sim.</p>`;
 }
@@ -1012,7 +1011,7 @@ function statusBanner() {
 
 function renderSide() {
   const side = $("#side");
-  const key = [JSON.stringify(planBusy), Object.keys(planIdeas).map((k) => k + (Array.isArray(planIdeas[k]) ? planIdeas[k].length : planIdeas[k])), S.job && S.job.id, S.job && S.job.plan && S.job.plan.built_at, S.job && S.job.plan_sent, !!(S.live && S.live.flight && S.live.flight.phase !== "preflight"), Object.keys(planOpen).map((k) => k + (planOpen[k] === "loading" ? "L" : planOpen[k].built_at)), (S.offers || []).map((o) => o.id), openOffer, filtersOpen, S.gen, S.plane.status, S.plane.status === "in_repair" ? Math.floor(S.plane.repair.left_s / 10) : 0, S.pending_friend && S.pending_friend.name, S.aircraft.id];
+  const key = [JSON.stringify(planBusy), Object.keys(planIdeas).map((k) => k + (Array.isArray(planIdeas[k]) ? planIdeas[k].length : planIdeas[k])), S.job && S.job.id, S.job && S.job.plan && S.job.plan.built_at, !!(S.live && S.live.flight && S.live.flight.phase !== "preflight"), Object.keys(planOpen).map((k) => k + (planOpen[k] === "loading" ? "L" : planOpen[k].built_at)), (S.offers || []).map((o) => o.id), openOffer, filtersOpen, S.gen, S.plane.status, S.plane.status === "in_repair" ? Math.floor(S.plane.repair.left_s / 10) : 0, S.pending_friend && S.pending_friend.name, S.aircraft.id];
   if (changed("side", key)) {
     if (!prefs) prefs = { ...S.prefs };
     let h = statusBanner();
@@ -1114,7 +1113,6 @@ function bindSide() {
     if (r && r.ok) toast(`Saved ${r.name} for the GTNXi. On the GTN: Flight Plan, Menu, Catalog, Menu, Import.`, true);
     else if (r && r.error) toast(r.error);
   });
-  const sp = $("#sendplan"); if (sp) sp.onclick = async () => { sp.disabled = true; const r = await post("/api/load_plan"); if (r && r.ok) toast("Flight plan sent to the sim.", true); };
   const nf = $("#nofriend"); if (nf) nf.onclick = () => post("/api/decline_friend");
   const df = $("#dfly"); if (df) df.onclick = () => post("/api/demo", { action: "fly", fpm: +$("#dfpm").value, rough: $("#drough").checked, duration: 45 });
   const dc = $("#dcrash"); if (dc) dc.onclick = () => post("/api/demo", { action: "crash" });
@@ -1528,8 +1526,7 @@ function renderSettings() {
     <label class="toggle"><input type="checkbox" id="sfail" ${s.failures ? "checked" : ""}> Worn parts can fail in the sim</label>
     <label class="toggle"><input type="checkbox" id="seng" ${s.engine_failures ? "checked" : ""}> Badly neglected engines can quit completely</label>
     <label class="toggle"><input type="checkbox" id="sifr" ${s.ifr_auto ? "checked" : ""}> Offer IFR legs when the weather is bad (IFR aircraft only)</label>
-    <label class="toggle"><input type="checkbox" id="sauto" ${s.auto_load_plan ? "checked" : ""}> Send the flight plan to the sim automatically when I take a leg</label>
-    <label class="toggle"><input type="checkbox" id="sgtn" ${s.gtn_auto ? "checked" : ""}> Also save it for the GTN (TDS GTNXi) whenever it goes to the sim</label>
+    <label class="toggle"><input type="checkbox" id="sgtn" ${s.gtn_auto ? "checked" : ""}> Save the flight plan for the GTN (TDS GTNXi) automatically when I take a leg</label>
     <label for="sgtnf">GTN flight plan folder</label><input type="text" id="sgtnf" value="${esc(s.gtn_folder || "")}" placeholder="C:\ProgramData\TDS\GTNXi\FPL" style="width:100%">
     <p class="hint">Onward saves a Garmin .gfp file there. Airports go in by their code, every other waypoint by its coordinates, so nothing imports as a locked waypoint. On the GTN: Flight Plan, Menu, Catalog, Menu, Import.</p>
     <label class="toggle"><input type="checkbox" id="svoice" ${s.voice ? "checked" : ""}> Spoken callouts (sights, waypoints, stable approach, warnings)</label>
@@ -1551,7 +1548,7 @@ function renderSettings() {
     <button class="btn ghost" id="sreload">Reload POI files</button>
     <h3>Data</h3><p class="hint">Airfields: OurAirports (public domain). Weather: aviationweather.gov. Landmarks: © OpenStreetMap contributors via Overpass. Real-world data can differ from what's in the sim, especially for small strips and runway lighting.</p>
   </div></div>`;
-  $("#ssave").onclick = () => post("/api/settings", { settings: { pilot_name: $("#sname").value, failures: $("#sfail").checked, engine_failures: $("#seng").checked, ifr_auto: $("#sifr").checked, update_check: $("#supdchk").checked, update_repo: $("#srepo").value.trim(), update_token: $("#stoken").value.trim(), auto_load_plan: $("#sauto").checked, gtn_auto: $("#sgtn").checked, gtn_folder: $("#sgtnf").value.trim(), voice: $("#svoice").checked, photos: $("#sphotos").checked, photo_folders: $("#sphotodirs").value, openaip_key: $("#saip").value.trim(), shop_min_per_pt: +$("#sshop").value, field_min_per_pt: +$("#sfield").value, crash_hours: +$("#scrash").value } }).then(() => toast("Saved.", true));
+  $("#ssave").onclick = () => post("/api/settings", { settings: { pilot_name: $("#sname").value, failures: $("#sfail").checked, engine_failures: $("#seng").checked, ifr_auto: $("#sifr").checked, update_check: $("#supdchk").checked, update_repo: $("#srepo").value.trim(), update_token: $("#stoken").value.trim(), gtn_auto: $("#sgtn").checked, gtn_folder: $("#sgtnf").value.trim(), voice: $("#svoice").checked, photos: $("#sphotos").checked, photo_folders: $("#sphotodirs").value, openaip_key: $("#saip").value.trim(), shop_min_per_pt: +$("#sshop").value, field_min_per_pt: +$("#sfield").value, crash_hours: +$("#scrash").value } }).then(() => toast("Saved.", true));
   api("/api/photo_folders").then((r) => { const el = $("#sphotofound"); if (el) el.innerHTML = r.folders.length ? "Watching: " + r.folders.map((f) => `<code>${esc(f)}</code>`).join(", ") : "No screenshot folders found yet. Add yours above."; }).catch(() => {});
   const su = $("#supd"); if (su) su.onclick = () => runUpdate();
   const sr = $("#sroll"); if (sr) sr.onclick = () => runUpdate(true);

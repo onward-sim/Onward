@@ -151,19 +151,6 @@ class App:
         if detected and detected != c.s["current_aircraft"] and not c.s.get("job") and c.status() != "in_repair":
             c.set_aircraft(detected)
             log(f"Aircraft detected: {self.profiles[detected]['name']}")
-        # a "sim session" starts each time aircraft data appears (a flight is loaded); MSFS ignores flight plans
-        # sent from the main menu or a loading screen, so send once per session, 10 s after you're in the cockpit
-        has_data = bool(live.get("sample")) and not live.get("demo")
-        if has_data and not getattr(self, "_had_data", False):
-            self._sim_session = getattr(self, "_sim_session", 0) + 1
-            self._session_t = time.time()
-        self._had_data = has_data
-        job = c.s.get("job")
-        if (job and job.get("plan") and job.get("plan_sent_session") != getattr(self, "_sim_session", 0) and has_data
-                and c.s["settings"].get("auto_load_plan") and not (self.tracker.f or {}).get("takeoff_t")
-                and time.time() - getattr(self, "_session_t", 0) > 10 and time.time() - getattr(self, "_plan_try", 0) > 30):
-            self._plan_try = time.time()
-            threading.Thread(target=self.send_plan, args=(True,), daemon=True).start()
         here = c.loc()
         snap = c.snapshot()
         plane = c.plane()
@@ -237,8 +224,6 @@ class App:
                 flight["plan_opts"] = opts
             flight["plan"] = self.planner.build(flight, prof, self.sim_time(), pilot=self.career.s["settings"].get("pilot_name", ""),
                                                 opts=flight.get("plan_opts"))
-            flight["plan_sent"] = False
-            flight.pop("plan_sent_session", None)
             # sights the route now visits become part of the leg (so flying past them counts)
             if "base_pois" not in flight:
                 flight["base_pois"] = list(flight.get("pois", []))
@@ -277,6 +262,8 @@ class App:
         if "depart_offset_min" in b:
             opts["depart_offset_min"] = int(b["depart_offset_min"] or 0)
         plan = self.ensure_plan(fl, opts=opts)
+        if self.career.s.get("job") is fl:
+            self.auto_gtn(fl)
         delta = None
         if old:
             delta = {"nm": round(plan["total_nm"] - old.get("total_nm", 0), 1), "min": round(plan["ete_min"] - old.get("ete_min", 0)),
@@ -418,6 +405,7 @@ class App:
         c.s["job"] = offer
         c.save()
         self.tracker.begin(offer)
+        self.auto_gtn(offer)
         if self.demo:
             self.tracker.src.place(offer["dep"]["ident"])
         return None
@@ -443,41 +431,12 @@ class App:
         except OSError as e:
             return None, f"Couldn't save the GTN flight plan ({e})."
 
-    def send_plan(self, auto=False):
-        """Write the .pln next to the career and ask MSFS to load it (SimConnect FlightPlanLoad)."""
-        c = self.career
-        job = c.s.get("job")
-        if not job:
-            return "No active leg."
-        try:
-            self.ensure_plan(job)
-        except Exception:
-            log("Flight plan failed:\n" + traceback.format_exc())
-        if c.s["settings"].get("gtn_auto") and not self.demo:
+    def auto_gtn(self, job):
+        """With "save it for the GTN automatically" on, write the .gfp whenever a leg is taken or its plan changes."""
+        if job and self.career.s["settings"].get("gtn_auto") and not self.demo:
             _, err = self.save_gtn(job)
             if err:
                 self.tracker.msg(err, "warn")
-        folder = os.path.abspath(os.path.join(data.DATA, "plans"))
-        os.makedirs(folder, exist_ok=True)
-        base = os.path.join(folder, f"onward-{job['dep']['ident']}-{job['dest']['ident']}")
-        with open(base + ".pln", "w", encoding="utf-8") as fh:
-            fh.write(planner.pln(job))
-        if not self.tracker.src.connected:
-            return "The sim isn't connected yet. Onward will send the plan once you're in the cockpit."
-        if not self.tracker.view().get("sample"):
-            return "MSFS only accepts a flight plan once a flight is loaded. Get into the cockpit and Onward sends it by itself (or press Send again)."
-        ok = self.tracker.src.load_plan(base)
-        job["plan_sent"] = bool(ok)
-        if ok:
-            job["plan_sent_session"] = getattr(self, "_sim_session", 0)
-        c.save()
-        if ok:
-            log(f"Flight plan sent to MSFS: {base}.pln")
-            self.tracker.msg("Flight plan sent to the sim. Check it in the GPS or the EFB.", "good")
-            return None
-        if not auto:
-            return "MSFS didn't accept the flight plan. Download the .pln and load it from the world map instead."
-        return None
 
     def cancel(self):
         c = self.career
@@ -751,8 +710,6 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json({"error": "No such flight"}, 404)
                 path, err = APP.save_gtn(job)
                 return self._json({"error": err} if err else {"ok": True, "path": path, "name": os.path.basename(path)})
-            elif u.path == "/api/load_plan":
-                err = APP.send_plan()
             elif u.path == "/api/cancel":
                 err = APP.cancel()
             elif u.path == "/api/finish":

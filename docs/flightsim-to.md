@@ -21,7 +21,7 @@ Take one, fly it in the sim, and Onward follows along through SimConnect. When y
 - Takeoff and landing distances corrected for density altitude, wind and surface
 - An arrival briefing: runway for the wind, circuit altitude, how to join, terrain and frequencies
 - Weather overlays: radar, live satellite clouds, forecast flying conditions (VFR to LIFR) for the next six hours, METAR flight categories, SIGMETs and AIRMETs, winds aloft and low cloud
-- A .pln for MSFS, a printable navlog and a SimBrief prefill for IFR days
+- A .pln for MSFS, a Garmin .gfp for the TDS GTNXi, a printable navlog and a SimBrief prefill for IFR days
 
 ## In flight
 
@@ -57,7 +57,7 @@ Keep the black window open while you fly. Onward connects to MSFS by itself, bef
 - **Weather is the real-world forecast**, not the sim's live weather, so the two can differ. The side view says which forecast it used.
 - **Airfield and runway data come from real-world sources**, so small strips can be missing or placed differently in the sim.
 - **Study-level aircraft** with their own systems may ignore the sim's failure events.
-- **If MSFS doesn't pick up the flight plan**, use Download .pln and load it in the world map.
+- **Flight plans are loaded by you:** download the .pln and load it in the MSFS world map or the EFB. MSFS 2024 only takes part of a plan sent from outside, so Onward doesn't send it by itself.
 - Charts and data are for flight simulation only.
 
 ## Source code

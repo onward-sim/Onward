@@ -1,8 +1,8 @@
 {
-  "version": "0.27.4",
+  "version": "0.27.5",
   "date": "2026-11-09",
   "notes": [
-    "Fixed: plans sent to MSFS 2024 arrived without the departure and destination airports. The flight plan file now uses the MSFS 2024 format, with both airports and their runways",
-    "Fixed: a waypoint coordinate could be written with 60 seconds instead of rolling over to the next minute"
+    "Onward no longer sends flight plans to the sim: MSFS 2024 only took the waypoints, without the airports or the EFB. Download the .pln and load it in the world map or the EFB (Load from PC)",
+    "\"Save the flight plan for the GTN automatically\" now saves it when you take a leg, and again when you change its plan"
   ]
 }

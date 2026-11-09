@@ -91,7 +91,7 @@ function preflight(j) {
       ${p.fuel ? `<span>Fuel <b>${p.fuel.total} gal</b></span>` : ""}</div>
     ${vd ? `<div class="facts"><span class="verdict ${vd[1]}">${vd[0]}</span><span>${esc((w.bad[0] || w.care[0] || w.good[0] || ""))}</span></div>` : ""}
     <div class="facts"><span>Radio ${fq(p.freqs && p.freqs.dep)}</span></div>
-    ${j.plan && !j.plan_sent ? `<div style="margin-top:12px"><button id="send">Send flight plan to the sim</button></div>` : j.plan_sent ? `<div class="facts ok">Flight plan sent to the sim.</div>` : ""}</div>`;
+    </div>`;
 }
 function guide(g) {
   if (!g) return "";
@@ -144,7 +144,6 @@ function render() {
   if (f && f.active_failures && f.active_failures.length) h += `<div class="msg bad">Active failure: ${f.active_failures.map(esc).join(", ")}</div>`;
   if (f && f.msgs.length) h += `<div class="msgs">${f.msgs.slice(-3).reverse().map((m) => `<div class="msg ${m.level}"><time>${m.t}</time>${esc(m.text)}</div>`).join("")}</div>`;
   $("#main").innerHTML = h;
-  const sb = $("#send"); if (sb) sb.onclick = async () => { sb.disabled = true; sb.textContent = "Sending…"; await fetch("/api/load_plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); };
 }
 async function poll() { try { S = await (await fetch("/api/state" + (voiceOn ? "?cockpit=1" : ""))).json(); render(); } catch (e) { $("#dot").classList.remove("ok"); $("#phase").textContent = "Onward isn't running"; } }
 paintVoice(); keepAwake(); poll(); setInterval(poll, 1000);

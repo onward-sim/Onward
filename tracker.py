@@ -210,15 +210,6 @@ class SimConnectSource:
         self.accu_vals = vals if accusim.is_active(vals) else None
         return self.accu_vals
 
-    def load_plan(self, path_no_ext):
-        if not self.connected:
-            return False
-        try:
-            return bool(self.sm.load_flight_plan(path_no_ext))
-        except Exception as e:
-            self.log(f"Couldn't load the flight plan into MSFS: {e}")
-            return False
-
     def send(self, name):
         if not self.connected:
             return False
@@ -340,10 +331,6 @@ class DemoSource:
 
     def send(self, name):
         self.log(f"[demo] sim event {name}")
-        return True
-
-    def load_plan(self, path_no_ext):
-        self.log(f"[demo] would load flight plan {path_no_ext}.pln into MSFS")
         return True
 
 

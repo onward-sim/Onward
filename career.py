@@ -15,7 +15,7 @@ DEFAULT_PREFS = {
 }
 DEFAULT_SETTINGS = {
     "pilot_name": "", "failures": True, "engine_failures": True, "ifr_auto": True, "openaip_key": "",
-    "auto_load_plan": True, "gtn_auto": False, "gtn_folder": r"C:\ProgramData\TDS\GTNXi\FPL", "voice": False, "photos": True, "photo_folders": "",
+    "gtn_auto": False, "gtn_folder": r"C:\ProgramData\TDS\GTNXi\FPL", "voice": False, "photos": True, "photo_folders": "",
     "update_check": True, "update_repo": "", "update_token": "",
     "shop_min_per_pt": 1.0, "field_min_per_pt": 3.0, "crash_hours": 6.0,
 }
