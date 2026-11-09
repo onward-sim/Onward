@@ -95,9 +95,8 @@ def lla(lat, lon, alt_ft=0):
     """MSFS .pln coordinate format."""
     def part(v, pos, neg):
         h = pos if v >= 0 else neg
-        v = abs(v)
-        d = int(v)
-        m = int((v - d) * 60)
-        s = (v - d - m / 60) * 3600
-        return f"{h}{d}° {m}' {s:.2f}\""
+        total = round(abs(v) * 360000)  # hundredths of a second, so rounding never gives 60 seconds
+        d, rest = divmod(total, 360000)
+        m, cs = divmod(rest, 6000)
+        return f"{h}{d}° {m}' {cs // 100:02d}.{cs % 100:02d}\""
     return f"{part(lat, 'N', 'S')},{part(lon, 'E', 'W')},{'+' if alt_ft >= 0 else '-'}{abs(alt_ft):09.2f}"

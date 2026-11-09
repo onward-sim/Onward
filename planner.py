@@ -1107,16 +1107,6 @@ def _runway_for_wind(ap, wx):
     return best[1] if best else None
 
 
-def _rwy_tags(end):
-    if not end:
-        return ""
-    digits = "".join(ch for ch in end if ch.isdigit())
-    if not digits:
-        return ""
-    des = {"L": "LEFT", "R": "RIGHT", "C": "CENTER"}.get(end[-1].upper(), "NONE")
-    return f"<RunwayNumberFP>{int(digits)}</RunwayNumberFP><RunwayDesignatorFP>{des}</RunwayDesignatorFP>"
-
-
 def _gfp_coord(lat, lon):
     """Garmin user waypoint: N/S + 2 digits of degrees + 3 of minutes and tenths, E/W + 3 + 3 (67\u00b030.2'N -> N67302)."""
     def part(v, width, pos, neg):
@@ -1154,8 +1144,26 @@ def gfp_name(job):
     return f'{job["dep"].get("code") or "STRIP"}-{job["dest"].get("code") or "STRIP"}.gfp'.replace("/", "-")
 
 
+def _rwy_details(tag, end):
+    """<DepartureDetails>/<ArrivalDetails> with the runway, in the MSFS 2024 flight plan format."""
+    if not end:
+        return ""
+    digits = "".join(ch for ch in end if ch.isdigit())
+    if not digits or not 1 <= int(digits) <= 36:
+        return ""
+    des = {"L": "LEFT", "R": "RIGHT", "C": "CENTER"}.get(end[-1].upper())
+    des_tag = f"\n            <RunwayDesignatorFP>{des}</RunwayDesignatorFP>" if des else ""
+    return f"\n        <{tag}>\n            <RunwayNumberFP>{int(digits)}</RunwayNumberFP>{des_tag}\n        </{tag}>"
+
+
 def pln(job):
-    """MSFS flight plan file. Uses the built plan when there is one."""
+    """MSFS 2024 flight plan file (EFB format). Uses the built plan when there is one.
+
+    MSFS 2024 takes the departure and destination from DepartureID/DestinationID and their runways from
+    DepartureDetails/ArrivalDetails; the ATCWaypoints are only the points in between. The 2020-style file put the
+    airports in as Airport waypoints without an ICAO region, and MSFS 2024 dropped them: the plan arrived in the
+    sim with every point except the two airports. A strip with no code the sim knows ends the plan as a user point.
+    """
     dep, dest = job["dep"], job["dest"]
     plan = job.get("plan")
     alt = plan["cruise_alt"] if plan else job["cruise_alt"]
@@ -1163,41 +1171,49 @@ def pln(job):
         [{"ident": _wp_name(p["name"], i + 1), "lat": p["lat"], "lon": p["lon"], "name": p["name"]} for i, p in enumerate(job.get("pois", [])[:5])]
     dep_rw = (plan or {}).get("dep_runway") or {}
     arr_rw = (plan or {}).get("arr_runway") or job.get("runway") or {}
+    used = set()
 
-    def ap_wp(a, elev, rw_end):
-        if a["code"]:
-            return (f'\n        <ATCWaypoint id="{sx.escape(a["code"])}">\n            <ATCWaypointType>Airport</ATCWaypointType>\n'
-                    f'            <WorldPosition>{geo.lla(a["lat"], a["lon"], elev)}</WorldPosition>\n'
-                    f'            {_rwy_tags(rw_end)}\n'
-                    f'            <ICAO><ICAOIdent>{sx.escape(a["code"])}</ICAOIdent></ICAO>\n        </ATCWaypoint>')
-        return (f'\n        <ATCWaypoint id="STRIP">\n            <ATCWaypointType>User</ATCWaypointType>\n'
-                f'            <WorldPosition>{geo.lla(a["lat"], a["lon"], elev)}</WorldPosition>\n        </ATCWaypoint>')
+    def user_wp(ident, lat, lon, elev):
+        ident = "".join(ch for ch in str(ident).upper() if ch.isalnum() and ch.isascii())[:8] or "WPT"
+        base, k = ident, 2
+        while ident in used:  # MSFS wants every user waypoint name to be unique in the plan
+            ident = f"{base[:6]}{k}"
+            k += 1
+        used.add(ident)
+        return (f'\n        <ATCWaypoint id="{sx.escape(ident)}">\n            <ATCWaypointType>User</ATCWaypointType>\n'
+                f'            <ICAO>\n                <ICAOIdent>{sx.escape(ident)}</ICAOIdent>\n            </ICAO>\n'
+                f'            <WorldPosition>{geo.lla(lat, lon, elev)}</WorldPosition>\n        </ATCWaypoint>')
 
-    wps = [ap_wp(dep, dep["elev"], dep_rw.get("end"))]
+    wps = []
+    if not dep["code"]:
+        wps.append(user_wp("STRIP", dep["lat"], dep["lon"], dep["elev"]))
     for v in visuals:
-        wps.append(f'\n        <ATCWaypoint id="{sx.escape(v["ident"])}">\n            <ATCWaypointType>User</ATCWaypointType>\n'
-                   f'            <WorldPosition>{geo.lla(v["lat"], v["lon"], alt)}</WorldPosition>\n        </ATCWaypoint>')
-    wps.append(ap_wp(dest, dest["elev"], arr_rw.get("end")))
+        wps.append(user_wp(v["ident"], v["lat"], v["lon"], alt))
+    if not dest["code"]:
+        wps.append(user_wp("STRIP", dest["lat"], dest["lon"], dest["elev"]))
     dep_id, dest_id = dep["code"] or "STRIP", dest["code"] or "STRIP"
+    ids = ""
+    if dep["code"]:
+        ids += (f"\n        <DepartureID>{sx.escape(dep['code'])}</DepartureID>"
+                f"\n        <DepartureLLA>{geo.lla(dep['lat'], dep['lon'], dep['elev'])}</DepartureLLA>")
+    if dest["code"]:
+        ids += (f"\n        <DestinationID>{sx.escape(dest['code'])}</DestinationID>"
+                f"\n        <DestinationLLA>{geo.lla(dest['lat'], dest['lon'], dest['elev'])}</DestinationLLA>")
+    details = (_rwy_details("DepartureDetails", dep_rw.get("end")) if dep["code"] else "") + \
+              (_rwy_details("ArrivalDetails", arr_rw.get("end")) if dest["code"] else "")
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <SimBase.Document Type="AceXML" version="1,0">
     <Descr>AceXML Document</Descr>
     <FlightPlan.FlightPlan>
         <Title>{sx.escape(dep_id)} to {sx.escape(dest_id)}</Title>
-        <FPType>{"IFR" if job.get("rules") == "IFR" else "VFR"}</FPType>
-        <RouteType>VOR</RouteType>
-        <CruisingAlt>{alt}</CruisingAlt>
-        <DepartureID>{sx.escape(dep_id)}</DepartureID>
-        <DepartureLLA>{geo.lla(dep["lat"], dep["lon"], dep["elev"])}</DepartureLLA>
-        <DestinationID>{sx.escape(dest_id)}</DestinationID>
-        <DestinationLLA>{geo.lla(dest["lat"], dest["lon"], dest["elev"])}</DestinationLLA>
         <Descr>{sx.escape(job["title"])}</Descr>
+        <FPType>{"IFR" if job.get("rules") == "IFR" else "VFR"}</FPType>
+        <CruisingAlt>{alt}</CruisingAlt>{ids}
         <DepartureName>{sx.escape(dep["name"])}</DepartureName>
         <DestinationName>{sx.escape(dest["name"])}</DestinationName>
         <AppVersion>
-            <AppVersionMajor>11</AppVersionMajor>
-            <AppVersionBuild>282174</AppVersionBuild>
-        </AppVersion>{"".join(wps)}
+            <AppVersionMajor>12</AppVersionMajor>
+        </AppVersion>{details}{"".join(wps)}
     </FlightPlan.FlightPlan>
 </SimBase.Document>
 """

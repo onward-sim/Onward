@@ -1,5 +1,9 @@
 # What's new
 
+## 0.27.4
+- Fixed: plans sent to MSFS 2024 arrived without the departure and destination airports. The flight plan file now uses the MSFS 2024 format, with both airports and their runways.
+- Fixed: a waypoint coordinate could be written with 60 seconds instead of rolling over to the next minute.
+
 ## 0.27.3
 - Strips the sim may not have are marked OFF THE MAP in the list of suggested flights (hover the tag for what it means).
 - Fixed: strips with no elevation in the airfield database were treated as sea level, so they showed "elev 0 ft" and the hills around them were called a mountain approach. Onward now takes their height from the terrain.
