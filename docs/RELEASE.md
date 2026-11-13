@@ -31,6 +31,6 @@ Still to do before publishing:
 ## Publishing a version on flightsim.to
 
 1. Pick a version from `main` that has been tried in the sim. Run `python tests/smoke.py` (ALL OK).
-2. Tag it: `git tag v0.x.y && git push origin v0.x.y`. GitHub builds, tests and zips Onward.exe (`Onward-0.x.y-windows.zip`, with the source zip inside) and attaches it to a GitHub release.
+2. Tag it: `git tag v0.x.y && git push origin v0.x.y`. GitHub builds, tests and zips Onward.exe (`Onward-0.x.y-windows.zip`, with the source code inside) and attaches it to a GitHub release.
 3. Scan the zip on VirusTotal (0 detections), then upload it to the flightsim.to listing as a new version, with the CHANGELOG entry as the notes.
 4. Once it's live there, mark it stable: copy `version`, `date` and `notes` from version.json into `stable.json`, set `url` to the listing address, and push to `main`. Packaged apps then show "Get it on flightsim.to".

@@ -1,6 +1,6 @@
 # Builds the packaged Windows app (Onward.exe, no Python needed), starts it in demo mode and checks that it works.
 # A version tag like v0.26.0 also attaches the zip to a GitHub release; a push to the build-test branch only tests.
-# The zip holds Onward.exe and its files, README, LICENSE, CREDITS and the full source code (Onward-<v>-source.zip).
+# The zip holds Onward.exe and its files, README, LICENSE, CREDITS and the full source code (in "Source code").
 name: Build Windows app
 on:
   push:
@@ -66,9 +66,11 @@ jobs:
         run: |
           $v = (Get-Content version.json | ConvertFrom-Json).version
           Copy-Item README.md, LICENSE.txt, CREDITS.md dist/Onward/
-          # The complete source code goes inside the download (AGPL-3.0), so the package needs no outside link
-          git archive --format=zip --prefix="Onward-$v-source/" -o "dist/Onward/Onward-$v-source.zip" HEAD
-          if (-not (Test-Path "dist/Onward/Onward-$v-source.zip")) { throw "Source zip missing" }
+          # The complete source code goes inside the download (AGPL-3.0), so the package needs no outside link.
+          # As a plain folder, not a zip inside the zip: antivirus scanners flag archives nested next to a program.
+          git archive --format=tar --prefix="Source code/" -o "$env:RUNNER_TEMP\src.tar" HEAD
+          tar -xf "$env:RUNNER_TEMP\src.tar" -C dist/Onward
+          if (-not (Test-Path "dist/Onward/Source code/server.py")) { throw "Source code missing" }
           Compress-Archive -Path dist/Onward -DestinationPath "Onward-$v-windows.zip"
       - uses: actions/upload-artifact@v4
         with:

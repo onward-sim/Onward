@@ -62,7 +62,7 @@ Keep Onward open while you fly (closing its window stops it). Onward connects to
 
 ## Source code
 
-Onward is free software under the AGPL-3.0. The complete source code is included in the download (`Onward-<version>-source.zip`).
+Onward is free software under the AGPL-3.0. The complete source code is included in the download, in the `Source code` folder.
 
 ## Credits
 
