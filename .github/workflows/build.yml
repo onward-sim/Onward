@@ -23,9 +23,15 @@ jobs:
           pip install -r requirements.txt pywebview
           # PyInstaller with its launcher (bootloader) compiled here from source, not the prebuilt one: the prebuilt
           # launcher is shared by every PyInstaller app, malware included, so some antivirus engines flag it on sight
-          $env:PYINSTALLER_COMPILE_BOOTLOADER = "1"
-          pip install --no-binary pyinstaller pyinstaller
-          python -c "import PyInstaller, os; p = os.path.join(os.path.dirname(PyInstaller.__file__), 'bootloader', 'Windows-64bit-intel', 'run.exe'); print('bootloader', os.path.getsize(p), 'bytes')"
+          pip download --no-binary :all: --no-deps -d "$env:RUNNER_TEMP\pyi" pyinstaller==6.22.3
+          tar -xzf (Get-ChildItem "$env:RUNNER_TEMP\pyi\pyinstaller-*.tar.gz").FullName -C "$env:RUNNER_TEMP\pyi"
+          $src = (Get-ChildItem "$env:RUNNER_TEMP\pyi" -Directory -Filter "pyinstaller-*").FullName
+          Push-Location "$src\bootloader"
+          python ./waf all --target-arch=64bit
+          if ($LASTEXITCODE -ne 0) { throw "Couldn't compile the PyInstaller launcher" }
+          Pop-Location
+          pip install "$src"
+          python -c "import PyInstaller, os, hashlib; p = os.path.join(os.path.dirname(PyInstaller.__file__), 'bootloader', 'Windows-64bit-intel', 'runw.exe'); b = open(p, 'rb').read(); print('launcher runw.exe', len(b), 'bytes', hashlib.sha256(b).hexdigest()[:16]); assert len(b) != 306688, 'still the prebuilt launcher'"
       - name: Build
         run: >
           pyinstaller --noconfirm --windowed --name Onward --icon assets/onward.ico
