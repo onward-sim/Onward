@@ -30,6 +30,13 @@ jobs:
           --hidden-import metno --hidden-import terrain --hidden-import trips --hidden-import accusim
           --hidden-import window --collect-all webview
           server.py
+      - name: Tidy the package
+        shell: pwsh
+        run: |
+          # Python package records (*.dist-info) aren't needed to run, and they make scanners read the zip as a Python
+          # package ("whl") with a program inside, which one antivirus engine flags as a suspicious archive
+          Get-ChildItem dist/Onward/_internal -Directory -Filter "*.dist-info" | Remove-Item -Recurse -Force
+          if (Get-ChildItem dist/Onward/_internal -Directory -Filter "*.dist-info") { throw "dist-info left" }
       - name: App window is packaged
         shell: pwsh
         run: |
