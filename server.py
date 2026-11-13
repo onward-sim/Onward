@@ -777,6 +777,15 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json({"error": "No such flight"}, 404)
                 path, err = APP.save_gtn(job)
                 return self._json({"error": err} if err else {"ok": True, "path": path, "name": os.path.basename(path)})
+            elif u.path == "/api/quit":  # Onward.exe in the browser (no window to close): Settings › Quit Onward
+                if not data.FROZEN:
+                    return self._json({"error": "Close the black window to stop Onward."})
+                log("Quit from Settings.")
+                threading.Timer(0.5, lambda: os._exit(0)).start()
+                return self._json({"ok": True})
+            elif u.path == "/api/open_browser":  # from the app window: the same Onward in your normal browser
+                webbrowser.open(f"http://localhost:{self.server.server_address[1]}")
+                return self._json({"ok": True})
             elif u.path == "/api/photo/delete":
                 err = APP.delete_photo(b.get("file"))
             elif u.path == "/api/cancel":
@@ -826,25 +835,48 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     global APP
+    if sys.stdout is None or sys.stderr is None:  # Onward.exe has no console window: printing goes nowhere
+        sys.stdout = sys.stderr = open(os.devnull, "w")
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true")
     ap.add_argument("--port", type=int, default=8642)
     ap.add_argument("--start", default="KHAF")
-    ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--no-browser", action="store_true", help="only run the server (no window, no browser tab)")
+    ap.add_argument("--browser", action="store_true", help="Onward.exe: open in the browser instead of its own window")
     a = ap.parse_args()
     url = f"http://localhost:{a.port}"
+    use_window = data.FROZEN and not a.no_browser and not a.browser
     if already_running(a.port):  # a second copy would share the port silently on Windows and confuse the browser
-        print(f"Onward is already running at {url}. Use that window, or close it first to start this copy.", flush=True)
-        if not a.no_browser:
-            webbrowser.open(url)
+        text = f"Onward is already running at {url}. Use that window, or close it first to start this copy."
+        if data.FROZEN and not a.no_browser:
+            import window
+            window.message(text)
+        else:
+            print(text, flush=True)
+            if not a.no_browser:
+                webbrowser.open(url)
         sys.exit(0)
-    APP = App(demo=a.demo, start=a.start)
     try:
+        APP = App(demo=a.demo, start=a.start)
         srv = ThreadingHTTPServer(("0.0.0.0", a.port), Handler)
-    except OSError as e:
-        print(f"Onward couldn't use port {a.port} ({e}). Another program, or another copy of Onward, is using it.", flush=True)
+    except Exception as e:
+        log("Onward couldn't start:\n" + traceback.format_exc())
+        text = (f"Onward couldn't use port {a.port}. Another program, or another copy of Onward, is using it."
+                if isinstance(e, OSError) and getattr(e, "errno", None) in (98, 10048) else f"Onward couldn't start ({e}).")
+        if data.FROZEN:
+            import window
+            window.message(f"{text}\n\nDetails are in {LOG_FILE}", error=True)
+        else:
+            print(text, flush=True)
         sys.exit(1)
     log(f"Onward is running at {url}  (other devices on your network: http://<this PC's IP>:{a.port})")
+    if use_window:
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        import window
+        if window.run(url, log):
+            log("Window closed. Onward stopped.")
+            os._exit(0)
+        threading.Event().wait()  # fell back to the browser: keep serving until Quit in Settings
     if not a.no_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     try:

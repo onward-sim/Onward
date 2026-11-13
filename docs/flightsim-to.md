@@ -44,11 +44,11 @@ Onward watches how you treat the airplane: hard landings, overspeed, flap and ge
 ## Installation
 
 1. Unzip the download anywhere, for example in Documents.
-2. Double-click **Onward.exe**. A black window opens, and then your browser opens on Onward.
+2. Double-click **Onward.exe**. Onward opens in its own window.
 3. If Windows asks whether to allow Onward through the firewall, allow it. It's only needed to use Onward from a tablet or another computer.
 4. Pick a name and a home airfield, and you're off. The first start downloads the airfield database (about 15 MB), so it takes a minute.
 
-Keep the black window open while you fly. Onward connects to MSFS by itself, before or after the sim starts.
+Keep Onward open while you fly (closing its window stops it). Onward connects to MSFS by itself, before or after the sim starts.
 
 **Updating:** Onward tells you when a new version is out here on flightsim.to. Download it and replace the program folder. Your career, journal, photos and settings are kept separately in `%LOCALAPPDATA%\Onward`, so nothing is lost.
 

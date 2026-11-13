@@ -1552,6 +1552,8 @@ function renderSettings() {
   api("/api/photo_folders").then((r) => { const el = $("#sphotofound"); if (el) el.innerHTML = r.folders.length ? "Watching: " + r.folders.map((f) => `<code>${esc(f)}</code>`).join(", ") : "No screenshot folders found yet. Add yours above."; }).catch(() => {});
   const su = $("#supd"); if (su) su.onclick = () => runUpdate();
   const sr = $("#sroll"); if (sr) sr.onclick = () => runUpdate(true);
+  const sbw = $("#sbrowser"); if (sbw) sbw.onclick = () => api("/api/open_browser", {});
+  const sq = $("#squit"); if (sq) sq.onclick = async () => { if (!confirm("Quit Onward? Any leg in progress is saved and picks up where it was next time.")) return; await api("/api/quit", {}).catch(() => {}); document.body.innerHTML = "<p style=\"padding:40px;font:16px sans-serif\">Onward has stopped. You can close this window.</p>"; };
   $("#scheck").onclick = async () => { $("#scheck").textContent = "Checking…"; await api("/api/update/check", {}); keys.settings = null; await poll(); };
   $("#sreload").onclick = () => post("/api/reload_pois").then(() => toast("POI files reloaded.", true));
   loadAbout();
@@ -1774,7 +1776,8 @@ function updatesCard() {
     ${u.error ? `<p class="hint" style="color:var(--bad)">${esc(u.error)}</p>` : u.checked ? `<p class="hint">Last checked ${esc(u.checked)}.</p>` : ""}
     ${u.available && (u.notes || []).length ? `<span class="label" style="margin-top:12px">What's new</span><ul class="why">${u.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
     <div class="row" style="margin-top:12px">${u.available ? (u.frozen ? `<a class="btn lime" href="${esc(u.url || "https://flightsim.to")}" target="_blank" rel="noopener">Get it on flightsim.to</a>` : `<button class="btn lime" id="supd">Update now</button>`) : ""}<button class="btn ghost" id="scheck">Check now</button>${(u.backups || []).length ? `<button class="btn ghost" id="sroll">Go back to ${esc(u.backups[0].split("-")[0])}</button>` : ""}</div>
-    ${u.frozen ? `<p class="hint">This is the packaged app: new versions are on flightsim.to. Download the new zip and replace the program folder. Your career and settings stay as they are.</p>` : ""}
+    ${u.frozen ? `<p class="hint">This is the packaged app: new versions are on flightsim.to. Download the new zip and replace the program folder. Your career and settings stay as they are.</p>
+    <div class="row" style="margin-top:6px"><button class="btn ghost" id="sbrowser">Open in my browser</button><button class="btn ghost" id="squit">Quit Onward</button></div>` : ""}
     <label class="toggle"><input type="checkbox" id="supdchk" ${s.update_check !== false ? "checked" : ""}> Check for updates when Onward starts</label>
     <label for="srepo">Update source (GitHub owner/repository)</label><input type="text" id="srepo" value="${esc(s.update_repo || "")}" placeholder="onward-sim/Onward">
     <label for="stoken">GitHub token (only for a private repository)</label><input type="text" id="stoken" value="${esc(s.update_token || "")}" placeholder="leave empty for a public repository" autocomplete="off">

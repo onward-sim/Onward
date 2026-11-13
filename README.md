@@ -6,7 +6,7 @@ Everything it uses is free: airfields, navaids and frequencies from OurAirports,
 
 ## Install (sim PC)
 
-**The easy way: the Windows app.** Download Onward from flightsim.to, unzip it anywhere and double-click **Onward.exe**. No Python needed. Your career and settings live in `%LOCALAPPDATA%\Onward`, so you can replace the program folder with a new version at any time. The zip also holds the complete source code.
+**The easy way: the Windows app.** Download Onward from flightsim.to, unzip it anywhere and double-click **Onward.exe**. It opens in its own window (no Python, no browser tab); close the window to stop Onward. Settings › Updates can also open it in your normal browser. Your career and settings live in `%LOCALAPPDATA%\Onward`, so you can replace the program folder with a new version at any time. The zip also holds the complete source code.
 
 **From source** (gets updates from inside the app). You get the newest changes as soon as they're made, so it can be a little rougher. The Windows app on flightsim.to only gets versions that have been tried in the sim first.
 

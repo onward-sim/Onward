@@ -20,15 +20,21 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller
+          pip install -r requirements.txt pyinstaller pywebview
       - name: Build
         run: >
-          pyinstaller --noconfirm --name Onward --icon assets/onward.ico
+          pyinstaller --noconfirm --windowed --name Onward --icon assets/onward.ico
           --add-data "web;web" --add-data "aircraft.json;." --add-data "version.json;."
           --add-data "CREDITS.md;." --add-data "LICENSE.txt;."
           --collect-all SimConnect --collect-data certifi --hidden-import PIL.Image
-          --hidden-import metno --hidden-import terrain --hidden-import trips
+          --hidden-import metno --hidden-import terrain --hidden-import trips --hidden-import accusim
+          --hidden-import window --collect-all webview
           server.py
+      - name: App window is packaged
+        shell: pwsh
+        run: |
+          if (-not (Get-ChildItem -Recurse dist/Onward | Where-Object { $_.FullName -match "[\\/]webview[\\/]" } | Select-Object -First 1)) { throw "pywebview isn't in the package" }
+          "pywebview packaged"
       - name: Smoke test (demo mode)
         shell: pwsh
         run: |

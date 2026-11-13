@@ -1,5 +1,10 @@
 # What's new
 
+## 0.28.0
+- Onward.exe now opens in its own window, like a normal Windows app, instead of a black console window and a browser tab. Closing the window stops Onward.
+- Onward.exe: Settings › Updates can open Onward in your normal browser, and has a Quit button for when it runs in the browser.
+- If Onward.exe can't start, it now says why in a message box.
+
 ## 0.27.7
 - Delete photos: open a photo and press Delete photo. It's removed from the leg, the journal and the World map (the original screenshot stays where the sim saved it).
 
