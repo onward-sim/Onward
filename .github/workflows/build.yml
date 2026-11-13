@@ -20,7 +20,12 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller pywebview
+          pip install -r requirements.txt pywebview
+          # PyInstaller with its launcher (bootloader) compiled here from source, not the prebuilt one: the prebuilt
+          # launcher is shared by every PyInstaller app, malware included, so some antivirus engines flag it on sight
+          $env:PYINSTALLER_COMPILE_BOOTLOADER = "1"
+          pip install --no-binary pyinstaller pyinstaller
+          python -c "import PyInstaller, os; p = os.path.join(os.path.dirname(PyInstaller.__file__), 'bootloader', 'Windows-64bit-intel', 'run.exe'); print('bootloader', os.path.getsize(p), 'bytes')"
       - name: Build
         run: >
           pyinstaller --noconfirm --windowed --name Onward --icon assets/onward.ico
