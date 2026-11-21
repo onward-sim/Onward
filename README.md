@@ -6,7 +6,7 @@ Everything it uses is free: airfields, navaids and frequencies from OurAirports,
 
 ## Install (sim PC)
 
-**The easy way: the Windows app.** Download Onward from flightsim.to, unzip it anywhere and double-click **Onward.exe**. It opens in its own window (no Python, no browser tab); close the window to stop Onward. Settings › Updates can also open it in your normal browser. Your career and settings live in `%LOCALAPPDATA%\Onward`, so you can replace the program folder with a new version at any time. The zip also holds the complete source code.
+**The easy way: the Windows app.** Download Onward from flightsim.to, unzip it anywhere and double-click **Onward.exe**. It opens in its own window (no Python, no browser tab); close the window to stop Onward. It also has an icon in the system tray (by the clock) with Open and Quit, so you can always stop it from there. Settings › Updates can also open it in your normal browser. Your career and settings live in `%LOCALAPPDATA%\Onward`, so you can replace the program folder with a new version at any time. The zip also holds the complete source code.
 
 **From source** (gets updates from inside the app). You get the newest changes as soon as they're made, so it can be a little rougher. The Windows app on flightsim.to only gets versions that have been tried in the sim first.
 
@@ -174,5 +174,6 @@ Onward uses a "field journal" style: warm paper, serif headlines, small monospac
 
 - Real-world data doesn't always match the sim. Small strips may be missing or placed differently, runway lighting in MSFS isn't always accurate, and strips without a code the sim knows are marked "no sim code" with their coordinates.
 - Some study-level aircraft use their own systems and ignore the sim's failure events.
-- Aircraft limits live in `aircraft.json`. Edit them or add your own aircraft.
+- Onward knows 15 aircraft types (`aircraft.json`), and anything else flies as a generic light single. To add your own, put an `aircraft.json` with only your aircraft, in the same format, in Onward's data folder (`%LOCALAPPDATA%\Onward` for Onward.exe, `data` when running from source). Updates keep yours, and one with the same id as a built-in aircraft replaces it. The `match` words are looked for in the sim's aircraft title, and the longest match wins.
+- To use Onward on an iPad or another computer, open Settings: it shows this PC's address and a QR code to scan.
 - Your journey is saved in `data\career.json`. Back it up if you care about it; delete it to start over somewhere new.

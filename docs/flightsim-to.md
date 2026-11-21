@@ -48,7 +48,9 @@ Onward watches how you treat the airplane: hard landings, overspeed, flap and ge
 3. If Windows asks whether to allow Onward through the firewall, allow it. It's only needed to use Onward from a tablet or another computer.
 4. Pick a name and a home airfield, and you're off. The first start downloads the airfield database (about 15 MB), so it takes a minute.
 
-Keep Onward open while you fly (closing its window stops it). Onward connects to MSFS by itself, before or after the sim starts.
+Keep Onward open while you fly. To stop it, close its window, or right-click the Onward icon in the system tray (by the clock) and choose Quit Onward. Onward connects to MSFS by itself, before or after the sim starts.
+
+**On an iPad or tablet:** open Settings in Onward. It shows this PC's address and a QR code: scan it with the iPad's camera, on the same Wi-Fi.
 
 **Updating:** Onward tells you when a new version is out here on flightsim.to. Download it and replace the program folder. Your career, journal, photos and settings are kept separately in `%LOCALAPPDATA%\Onward`, so nothing is lost.
 

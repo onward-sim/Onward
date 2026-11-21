@@ -1518,6 +1518,25 @@ function renderHangar() {
 }
 
 /* ---------------- settings ---------------- */
+let qrLib = null;
+function loadQr() {
+  if (!qrLib) qrLib = new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"; sc.onload = () => ok(window.qrcode); sc.onerror = no; document.head.appendChild(sc); });
+  return qrLib;
+}
+async function renderTabletCard() {
+  const box = $("#tabletcard"); if (!box) return;
+  let urls = [];
+  try { urls = (await api("/api/lan")).urls || []; } catch (e) {}
+  const head = `<h3 style="margin-top:0">On your iPad, tablet or another computer</h3>`;
+  if (!urls.length) { box.innerHTML = head + `<p class="hint">Onward couldn't find this PC's address on your home network. On the tablet, open the browser and type this PC's IP address followed by <code>:${location.port || 8642}</code>.</p>`; return; }
+  const u = urls[0];
+  box.innerHTML = head + `<p class="hint">Use the same Wi-Fi as this PC. On the iPad, open the Camera and point it at the code, or open Safari and type the address:</p>
+    <div class="tablet"><div class="qr" id="tabletqr"></div><div><p class="tabaddr"><code>${esc(u)}</code></p>
+    <p class="hint">For a big flight display only (next waypoint, sights, speed and altitude), add <code>/cockpit.html</code> at the end. In Safari, Share, then Add to Home Screen gives it an icon like an app.</p>
+    ${urls.length > 1 ? `<p class="hint">Other addresses of this PC: ${urls.slice(1).map((x) => `<code>${esc(x)}</code>`).join(", ")}</p>` : ""}
+    <p class="hint">If it doesn't load, Windows may be blocking it: allow Onward in the Windows firewall (it usually asks the first time Onward starts).</p></div></div>`;
+  try { const qr = (await loadQr())(0, "M"); qr.addData(u); qr.make(); $("#tabletqr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); } catch (e) { const q = $("#tabletqr"); if (q) q.remove(); }
+}
 function renderSettings() {
   if (!changed("settings", [S.settings, S.update && [S.update.latest, S.update.checked, S.update.error, (S.update.backups || []).length]])) return;
   const s = S.settings;
@@ -1542,12 +1561,14 @@ function renderSettings() {
     <div style="margin-top:14px"><button class="btn" id="ssave">Save</button></div>
   </div>
   ${updatesCard()}
+  <div class="card" id="tabletcard"><h3 style="margin-top:0">On your iPad, tablet or another computer</h3><p class="hint">Looking for this PC's address…</p></div>
   <div class="card" id="aboutcard"><h3 style="margin-top:0">About and credits</h3><p class="hint">Loading…</p></div>
   <div class="card"><h3 style="margin-top:0">MSFS points of interest</h3>
     <p class="hint">Drop Little Navmap userpoint CSV files (for example the community "MSFS POIs" and "handcrafted airports" packs from Flightsim.to) into the <code>data/msfs_pois</code> folder, then press reload. MSFS POIs show as amber dots and are favored when picking routes. Handcrafted airports get a bonus too.</p>
     <button class="btn ghost" id="sreload">Reload POI files</button>
     <h3>Data</h3><p class="hint">Airfields: OurAirports (public domain). Weather: aviationweather.gov. Landmarks: © OpenStreetMap contributors via Overpass. Real-world data can differ from what's in the sim, especially for small strips and runway lighting.</p>
   </div></div>`;
+  renderTabletCard();
   $("#ssave").onclick = () => post("/api/settings", { settings: { pilot_name: $("#sname").value, failures: $("#sfail").checked, engine_failures: $("#seng").checked, ifr_auto: $("#sifr").checked, update_check: $("#supdchk").checked, update_repo: $("#srepo").value.trim(), update_token: $("#stoken").value.trim(), gtn_auto: $("#sgtn").checked, gtn_folder: $("#sgtnf").value.trim(), voice: $("#svoice").checked, photos: $("#sphotos").checked, photo_folders: $("#sphotodirs").value, openaip_key: $("#saip").value.trim(), shop_min_per_pt: +$("#sshop").value, field_min_per_pt: +$("#sfield").value, crash_hours: +$("#scrash").value } }).then(() => toast("Saved.", true));
   api("/api/photo_folders").then((r) => { const el = $("#sphotofound"); if (el) el.innerHTML = r.folders.length ? "Watching: " + r.folders.map((f) => `<code>${esc(f)}</code>`).join(", ") : "No screenshot folders found yet. Add yours above."; }).catch(() => {});
   const su = $("#supd"); if (su) su.onclick = () => runUpdate();

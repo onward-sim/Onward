@@ -76,9 +76,7 @@ class App:
                 real = self.weather.around
                 self.weather.around = lambda lat, lon, r: [dict(m, cat="IFR", ceiling=700, vis=3.0) for m in real(lat, lon, r)]
             self.landmarks = data.Landmarks(self.world, log=log)
-            own = os.path.join(data.DATA, "aircraft.json")  # your own edited copy wins over the one that ships
-            with open(own if os.path.exists(own) else os.path.join(BASE, "aircraft.json"), encoding="utf-8") as f:
-                self.profiles = {p["id"]: p for p in json.load(f)["profiles"]}
+            self.profiles = load_profiles(log)
             name = "career-demo.json" if self.demo else "career.json"
             self.career = career_mod.Career(os.path.join(data.DATA, name), self.world, self.profiles, start=self.start)
             if not self.career.s.get("current_aircraft"):
@@ -136,10 +134,14 @@ class App:
         t = (title or "").lower()
         if not t:
             return None
+        # the longest matching word wins, so "savage norden" beats the Cub's "savage" and "pc-12" beats "12"
+        best, size = None, 0
         for pid, p in self.profiles.items():
-            if any(m in t for m in p.get("match", [])):
-                return pid
-        return None
+            for m in p.get("match", []):
+                m = m.lower()
+                if m and m in t and len(m) > size:
+                    best, size = pid, len(m)
+        return best
 
     def state(self):
         if not self.ready:
@@ -212,6 +214,11 @@ class App:
         threading.Thread(target=run, daemon=True).start()
 
     def sim_time(self):
+        """The sim's clock when it's connected (it can be set to any date and time), else the real time.
+        Offers, arrival times and daylight follow it, so a night in the sim plans like a night."""
+        s = getattr(self.tracker, "live", None) or {}
+        if s.get("zulu_year") is not None:
+            return tracker.sim_time(s)
         return datetime.now(timezone.utc)
 
     def find_flight(self, oid):
@@ -554,6 +561,8 @@ class Handler(BaseHTTPRequestHandler):
                 if st.get("ready"):
                     st["cockpit_active"] = time.time() - getattr(APP, "cockpit_seen", 0) < 6
                 return self._json(st)
+            if u.path == "/api/lan":
+                return self._json({"urls": lan_addresses(self.server.server_address[1])})
             if u.path == "/api/credits":
                 out = {}
                 for name in ("CREDITS.md", "LICENSE.txt"):
@@ -879,10 +888,64 @@ def main():
         threading.Event().wait()  # fell back to the browser: keep serving until Quit in Settings
     if not a.no_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+        if data.FROZEN:  # Onward.exe in the browser (--browser): the tray icon is how to stop it
+            import window
+            window.tray(url, log)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
         pass
+
+
+def load_profiles(log=print):
+    """The aircraft Onward knows: the list that ships, plus your own aircraft from aircraft.json in the data
+    folder (%LOCALAPPDATA%\\Onward). Yours are added to the list, and replace a built-in one with the same id, so
+    updates keep bringing new built-in aircraft without touching yours. A broken file of yours is skipped (and
+    logged) instead of stopping Onward."""
+    with open(os.path.join(BASE, "aircraft.json"), encoding="utf-8") as f:
+        profiles = {p["id"]: p for p in json.load(f)["profiles"]}
+    own = os.path.join(data.DATA, "aircraft.json")
+    if os.path.exists(own):
+        try:
+            with open(own, encoding="utf-8") as f:
+                mine = json.load(f)
+            mine = mine.get("profiles", []) if isinstance(mine, dict) else mine
+            base = profiles["generic"]
+            added = []
+            for p in mine:
+                if isinstance(p, dict) and p.get("id") and p.get("name"):
+                    profiles[p["id"]] = dict(base, **p)  # anything left out comes from the generic single
+                    added.append(p["name"])
+            if added:
+                log(f"Your own aircraft from {_private(own)}: {', '.join(added)}")
+        except Exception as e:
+            log(f"Couldn't read your aircraft file {_private(own)} ({e}). Using the built-in aircraft only.")
+    return profiles
+
+
+def lan_addresses(port):
+    """Addresses other devices on the home network (a tablet, a Mac) can open Onward at."""
+    import socket
+    ips = []
+    try:  # the address the PC uses to reach the network (a UDP "connect" sends nothing)
+        sk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sk.connect(("192.168.255.255", 1))
+        ips.append(sk.getsockname()[0])
+        sk.close()
+    except OSError:
+        pass
+    try:
+        ips += socket.gethostbyname_ex(socket.gethostname())[2]
+    except OSError:
+        pass
+    def private(ip):
+        a = [int(x) for x in ip.split(".")]
+        return a[0] == 10 or (a[0] == 172 and 16 <= a[1] <= 31) or (a[0] == 192 and a[1] == 168)
+    out = []
+    for ip in ips:
+        if ip and not ip.startswith("127.") and private(ip) and ip not in out:
+            out.append(ip)
+    return [f"http://{ip}:{port}" for ip in out]
 
 
 def already_running(port):

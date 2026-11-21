@@ -583,3 +583,11 @@ ul.credits li { margin: 2px 0; }
 /* delete button in the photo viewer */
 .lightbox .lb-del { display: block; margin: 10px auto 0; background: transparent; border: 1px solid rgba(255,255,255,.35); color: #f4f2ec; border-radius: 8px; padding: 6px 14px; font: 500 13px var(--sans); cursor: pointer; }
 .lightbox .lb-del:hover { background: var(--bad); border-color: var(--bad); }
+
+.tablet { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.tablet > div:not(.qr) { flex: 1 1 200px; min-width: 0; }
+.tablet code { overflow-wrap: anywhere; }
+.tablet .qr { flex: 0 0 140px; width: 140px; background: #fff; border-radius: 8px; padding: 4px; }
+.tablet .qr svg { width: 100%; height: auto; display: block; }
+.tabaddr { margin: 0 0 6px; }
+.tabaddr code { font-size: 16px; }

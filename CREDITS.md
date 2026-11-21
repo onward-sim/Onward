@@ -27,7 +27,8 @@ Onward is free and built entirely on free data and free services. Thank you to:
 - open flightmaps (VFR charts), openAIP (airspace, with your own free key)
 
 **Software**
-- Leaflet (BSD-2-Clause), Python-SimConnect (AGPL-3.0), Pillow (MIT-CMU), certifi (MPL-2.0)
+- Leaflet (BSD-2-Clause), Python-SimConnect (AGPL-3.0), Pillow (MIT-CMU), certifi (MPL-2.0), qrcode-generator (MIT, for the tablet QR code)
+- Onward.exe also uses pywebview (BSD-3-Clause) for its window, pystray (LGPL-3.0) for the tray icon, and is built with PyInstaller (GPL-2.0 with the bootloader exception)
 - Fonts: Instrument Serif, Inter Tight and JetBrains Mono (SIL Open Font License), via Google Fonts
 
 All data is real-world data and can differ from the sim. Charts and data are for flight simulation only, never for real-world navigation.

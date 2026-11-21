@@ -34,6 +34,7 @@ SLOW = {
     "crash": ("CRASH FLAG", "enum"), "slew": ("IS SLEW ACTIVE", "bool"),
     # the sim's own clock, so "night" means night in the sim (which can be set to any time)
     "zulu_s": ("E:ZULU TIME", "seconds"), "zulu_doy": ("E:ZULU DAY OF YEAR", "number"), "zulu_year": ("E:ZULU YEAR", "number"),
+    "local_s": ("E:LOCAL TIME", "seconds"),  # the sim's local clock, for the times in the flight log
 }
 
 
@@ -47,6 +48,20 @@ def sim_time(s):
     except (KeyError, TypeError, ValueError):
         pass
     return datetime.now(timezone.utc)
+
+
+def sim_clock(s):
+    """The sim's local time of day as HH:MM:SS, or the computer's clock when the sim doesn't say."""
+    try:
+        sec = int(float(s["local_s"])) % 86400
+        return f"{sec // 3600:02d}:{sec % 3600 // 60:02d}:{sec % 60:02d}"
+    except (KeyError, TypeError, ValueError):
+        return time.strftime("%H:%M:%S")
+
+
+def sim_iso(s):
+    """The sim's UTC date and time for the journal (ISO, Z)."""
+    return sim_time(s).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 FAILURES = {
     "engine": [("TOGGLE_VACUUM_FAILURE", "Vacuum pump failure"), ("TOGGLE_ELECTRICAL_FAILURE", "Electrical failure")],
@@ -375,7 +390,7 @@ class Tracker:
     def msg(self, text, level="info", quiet=False):
         """A line in the flight log. quiet: shown but not spoken by the callouts."""
         if self.f is not None:
-            m = {"t": time.strftime("%H:%M:%S"), "text": text, "level": level}
+            m = {"t": sim_clock(self.live or {}), "text": text, "level": level}
             if quiet:
                 m["quiet"] = True
             self.f["msgs"].append(m)
@@ -1188,6 +1203,7 @@ class Tracker:
                 "lat": final["lat"], "lon": final["lon"], "night": job.get("night", False),
                 "rules": job.get("rules", "VFR"), "go_arounds": f["go_arounds"], "landing": card,
                 "gate": f.get("gate"), "photos": [{k: v for k, v in p.items() if k != "src"} for p in job.get("photos", []) if not p.get("skip")],
+                "at": sim_iso(s), "real_at": career_mod.now_iso(),  # the journal follows the sim's calendar
                 "accusim": bool(accu), "from_ident": job["dep"]["ident"], "track": _thin([[job["dep"]["lat"], job["dep"]["lon"]]] + f["track"] + [[final["lat"], final["lon"]]]),
             }
             c.add_entry(entry)

@@ -1,5 +1,15 @@
 # What's new
 
+## 0.29.0
+- Onward.exe has an icon in the system tray (by the clock) with Open Onward, Open in my browser and Quit Onward, so you can always stop it, even if it opened in the browser. Closing the window now stops Onward right away.
+- Onward follows the sim's clock: journal dates, the times in the flight log, and the arrival times and daylight in offers use the sim's date and time (when it's connected), so a flight at night in the sim plans and logs like a night.
+- Use Onward on an iPad or tablet: Settings shows this PC's address on your network and a QR code to scan with the camera.
+- New aircraft: Zlin Savage Norden and Pilatus PC-12.
+- Add your own aircraft: put an aircraft.json with only your aircraft in Onward's data folder (%LOCALAPPDATA%\Onward). Updates keep yours, and the built-in list still gets new aircraft.
+- Aircraft recognition picks the most specific match, so the Savage Norden is no longer taken for a Savage Cub.
+- The current leg shows the planned cruise altitude, not the first estimate from the offer.
+- With the side view collapsed, its hazard key no longer overlaps the map credits.
+
 ## 0.28.0
 - Onward.exe now opens in its own window, like a normal Windows app, instead of a black console window and a browser tab. Closing the window stops Onward.
 - Onward.exe: Settings › Updates can open Onward in your normal browser, and has a Quit button for when it runs in the browser.

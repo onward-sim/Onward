@@ -245,7 +245,7 @@ class Career:
 
     def add_entry(self, entry):
         with self.lock:
-            self.s["journal"].append(dict(entry, type="leg", at=now_iso()))
+            self.s["journal"].append(dict(entry, type="leg", at=entry.get("at") or now_iso()))
             self.save()
 
     def stats(self):

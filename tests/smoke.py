@@ -82,8 +82,26 @@ _dark = tracker.sim_time({"zulu_year": 2026, "zulu_doy": 312, "zulu_s": 72000})
 check("night from the sim clock", geo.solar_elevation(42.59, -5.65, _day) > 0 > geo.solar_elevation(42.59, -5.65, _dark) + 4
       and _day.hour == 10, (_day, _dark))
 check("sim clock missing falls back to now", abs((tracker.sim_time({}) - __import__("datetime").datetime.now(__import__("datetime").timezone.utc)).total_seconds()) < 5)
+check("flight log and journal use the sim's clock", tracker.sim_clock({"local_s": 3600 * 21 + 65}) == "21:01:05"
+      and tracker.sim_iso({"zulu_year": 2026, "zulu_doy": 312, "zulu_s": 36000}) == "2026-11-08T10:00:00Z"
+      and len(tracker.sim_clock({})) == 8)
 check("half sample from MSFS waits", half is None and (_src.read() or {}).get("lat") == 37.5, half)
 check("non-A2A aircraft reads no AccuSim", (_src.read() or {}).get("accusim", "x") is None)
+
+# aircraft: your own file adds to the built-in list, and the longest match in the sim's title wins
+import json as _json  # noqa: E402
+import server as _server  # noqa: E402
+with open(os.path.join(os.environ["ONWARD_DATA"], "aircraft.json"), "w", encoding="utf-8") as _f:
+    _json.dump({"profiles": [{"id": "mine", "name": "My Zenith", "match": ["zenith"], "cruise_kt": 95}]}, _f)
+_profs = _server.load_profiles(lambda m: None)
+os.remove(os.path.join(os.environ["ONWARD_DATA"], "aircraft.json"))
+check("own aircraft file adds to the list", "mine" in _profs and "c172" in _profs and _profs["mine"]["vne"] == _profs["generic"]["vne"]
+      and _profs["mine"]["cruise_kt"] == 95, sorted(_profs))
+_app = type("A", (), {"profiles": _profs})()
+_det = lambda title: _server.App.detect_aircraft(_app, title)  # noqa: E731
+check("longest aircraft match wins", _det("Zlin Savage Norden") == "norden" and _det("Savage Cub") == "xcub"
+      and _det("Pilatus PC-12 NGX") == "pc12" and _det("Cessna 172 Skyhawk") == "c172" and _det("My Zenith 701") == "mine",
+      [_det(x) for x in ("Zlin Savage Norden", "Savage Cub", "Pilatus PC-12 NGX")])
 
 # A2A AccuSim: the airplane's real condition replaces Onward's own model
 import accusim  # noqa: E402
